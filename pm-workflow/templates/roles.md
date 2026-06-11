@@ -11,7 +11,6 @@ Defines every participant's role, responsibilities, and boundaries in this proje
 | PL  | Planner           | Opus / max     | `brainstorming`, `writing-plans`                             |
 | PG  | Programmer        | Sonnet / high  | `test-driven-development`, `executing-plans`, `react-doctor` |
 | QA  | QA Reviewer       | Opus / high    | `code-review`, `systematic-debugging`                        |
-| AD  | Technical Advisor | Opus / high    | `brainstorming`                                              |
 
 > Models/efforts are pinned in each `.claude/agents/*.md` frontmatter. The PM is whatever model you launch the session as (Fable recommended — it only routes).
 >
@@ -59,10 +58,6 @@ Runs the pipeline from one prompt; never implements. Dispatches PL, PG, QA as su
 | Verdict | **Approve** / **Approve with comments** / **Reject with reasons** → `docs/test.md` |
 
 **Rules:** Review only; never rewrites. Does not re-litigate `docs/trd.md` architecture.
-
-## AD — Technical Advisor
-
-Approach validation, trade-off analysis, risk flags. Advisory only; never modifies files.
 
 ## Handoff Protocol & Gates
 

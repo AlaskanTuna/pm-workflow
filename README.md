@@ -44,7 +44,7 @@ This copies the skill into `~/.claude/skills/pm-workflow` (global) or `./.claude
 
 ## Dependencies
 
-The workflow runs **standalone** — the skills below are *optional assists* the subagents use **if present** and degrade gracefully if not. On first scaffold, `/pm-workflow` checks what's installed and, if any `superpowers` skills are missing, **pauses and asks** whether to install them first or proceed without (it can't install plugins for you — that's a human action).
+The workflow runs **standalone** — the skills below are *optional assists* the subagents use **if present** and degrade gracefully if not. On first scaffold, `/pm-workflow` checks what's installed and, if any `superpowers` skills (or `react-doctor`, on React projects) are missing, **pauses and asks** whether to install them first or proceed without (it can't install the plugin for you — that's a human action).
 
 | Skill | Used by | Source | If missing |
 | ----- | ------- | ------ | ---------- |
@@ -52,9 +52,9 @@ The workflow runs **standalone** — the skills below are *optional assists* the
 | `test-driven-development`, `executing-plans` | programmer | `superpowers` plugin | programmer follows TDD by hand |
 | `systematic-debugging` | qa | `superpowers` plugin | qa debugs methodically by hand |
 | `code-review` | qa | built into Claude Code | always available |
-| `react-doctor` | programmer (frontend) | custom / not distributed | skipped |
+| `react-doctor` | programmer (React projects) | `npx react-doctor@latest install` | skipped on non-React projects, or if absent |
 
-For the full experience, install the **superpowers** plugin: run `/plugin` in Claude Code and add it from the `claude-plugins-official` marketplace.
+For the full experience, install the **superpowers** plugin (`/plugin` → `claude-plugins-official` marketplace), and for React projects, run `npx react-doctor@latest install`.
 
 ## Update
 

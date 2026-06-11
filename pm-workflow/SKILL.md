@@ -23,7 +23,6 @@ Do this when the workflow isn't set up yet (no `docs/roles.md`). Skip to Phase B
    - Project name + one-line purpose
    - Primary stack (if ambiguous)
    - Whether agents may create commits, or human-only commits
-   - Whether to include the optional `advisor` agent
    Keep it short — prefer detection over asking.
 
 4. **Create directories:** `docs/` and `.claude/agents/`.
@@ -33,20 +32,20 @@ Do this when the workflow isn't set up yet (no `docs/roles.md`). Skip to Phase B
    - `templates/roles.md` → `docs/roles.md` (verbatim).
    - `templates/plan.md` → `docs/plan.md`; `templates/progress.md` → `docs/progress.md`; `templates/test.md` → `docs/test.md` (verbatim).
    - `templates/settings.local.json` → `.claude/settings.local.json`.
-   - `templates/agents/{planner,programmer,qa}.md` → `.claude/agents/` (verbatim). Include `advisor.md` only if requested.
+   - `templates/agents/{planner,programmer,qa}.md` → `.claude/agents/` (verbatim).
 
 6. **Sanity-check the model override.** If `CLAUDE_CODE_SUBAGENT_MODEL` is set in `~/.claude/settings.json` or the project settings, WARN the human: it overrides every agent's `model:` frontmatter, so planner/qa would silently run as that model instead of Opus. Recommend removing it.
 
 7. **Check skill dependencies, then PAUSE if any are missing.** Check which referenced skills are present (this session's available skills, `~/.claude/skills/`, installed plugins):
    - **From the `superpowers` plugin:** `brainstorming`, `writing-plans` (planner); `test-driven-development`, `executing-plans` (programmer); `systematic-debugging` (qa).
    - **Built-in (always present):** `code-review` (qa) — never counts as missing.
-   - **Optional/custom:** `react-doctor` (programmer, frontend only) — not distributed; never counts as missing, don't prompt for it.
+   - **React projects only:** `react-doctor` (programmer, frontend). Count it as missing **only if the scaffolded project is React/frontend**; ignore it for any other stack.
 
-   If all `superpowers` skills are present, continue silently. **If any are missing, STOP and ask the human** (AskUserQuestion) with two options — do not proceed until they answer:
-   - **Install them first** — tell them exactly how: install the `superpowers` plugin via `/plugin` (marketplace `claude-plugins-official`). They can do this now; it activates in the fresh Phase-B session (same restart the scaffold already requires), so the skills and the agents come online together. Then continue.
+   Build the missing-set: the absent `superpowers` skills, plus `react-doctor` if this is a React project and it's absent. If the set is empty, continue silently. **Otherwise STOP and ask the human** (AskUserQuestion) with two options — do not proceed until they answer:
+   - **Install them first** — tell them exactly how: `superpowers` via `/plugin` (marketplace `claude-plugins-official`); `react-doctor` via `npx react-doctor@latest install`. The plugin activates in the fresh Phase-B session (same restart the scaffold already requires), so skills and agents come online together. Then continue.
    - **Proceed without** — continue scaffolding; the agents degrade gracefully (they do the same work inline). Note which assists they'll be missing.
 
-   You **cannot** install plugins yourself — that is a human action and would touch protected config. Present the choice and wait.
+   You **cannot** install the `superpowers` plugin yourself — that is a human action that touches protected config. Present the choice and wait.
 
 8. **Confirm, then STOP — do not run a task in this session.** Show the file tree you created and a 4-line pipeline summary. Then tell the human to open a **brand-new session at the project root**: `/exit`, then `cd` into the project directory (**if you scaffolded into a subdir, `cd` into that subdir**) and start a fresh `claude` session there. **Resuming the same chat does not work** — it keeps the stale agent registry and the named agents won't be found.
    - **Why this is mandatory:** `.claude/agents/*.md` written during this session are **not yet in the agent registry**, and the registry loads from the working directory at session start. Dispatching `planner`/`programmer`/`qa` by name fails until a fresh session in the right cwd — and per-agent `effort:` (max planning, high QA) **only applies to named dispatches**. Run Phase B in the same session and you lose the effort pinning.
