@@ -42,6 +42,20 @@ This copies the skill into `~/.claude/skills/pm-workflow` (global) or `./.claude
 
 ---
 
+## Dependencies
+
+The workflow runs **standalone** — the skills below are *optional assists* the subagents use **if present** and degrade gracefully if not. On first scaffold, `/pm-workflow` checks what's installed and tells you what's missing (it cannot install plugins for you — that's a human action).
+
+| Skill | Used by | Source | If missing |
+| ----- | ------- | ------ | ---------- |
+| `brainstorming`, `writing-plans` | planner | `superpowers` plugin | planner reasons through it inline |
+| `test-driven-development`, `executing-plans` | programmer | `superpowers` plugin | programmer follows TDD by hand |
+| `systematic-debugging` | qa | `superpowers` plugin | qa debugs methodically by hand |
+| `code-review` | qa | built into Claude Code | always available |
+| `react-doctor` | programmer (frontend) | custom / not distributed | skipped |
+
+For the full experience, install the **superpowers** plugin: run `/plugin` in Claude Code and add it from the `claude-plugins-official` marketplace.
+
 ## Update
 
 Re-run the installer — it overwrites the installed copy with the latest:
