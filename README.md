@@ -44,7 +44,7 @@ This copies the skill into `~/.claude/skills/pm-workflow` (global) or `./.claude
 
 ## Dependencies
 
-The workflow runs **standalone** — the skills below are *optional assists* the subagents use **if present** and degrade gracefully if not. On first scaffold, `/pm-workflow` checks what's installed and tells you what's missing (it cannot install plugins for you — that's a human action).
+The workflow runs **standalone** — the skills below are *optional assists* the subagents use **if present** and degrade gracefully if not. On first scaffold, `/pm-workflow` checks what's installed and, if any `superpowers` skills are missing, **pauses and asks** whether to install them first or proceed without (it can't install plugins for you — that's a human action).
 
 | Skill | Used by | Source | If missing |
 | ----- | ------- | ------ | ---------- |

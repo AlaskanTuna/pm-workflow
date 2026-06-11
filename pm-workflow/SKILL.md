@@ -37,11 +37,16 @@ Do this when the workflow isn't set up yet (no `docs/roles.md`). Skip to Phase B
 
 6. **Sanity-check the model override.** If `CLAUDE_CODE_SUBAGENT_MODEL` is set in `~/.claude/settings.json` or the project settings, WARN the human: it overrides every agent's `model:` frontmatter, so planner/qa would silently run as that model instead of Opus. Recommend removing it.
 
-7. **Check skill dependencies (report — you cannot auto-install).** The role agents *prefer* these skills but degrade gracefully without them. Check which are present (this session's available skills, `~/.claude/skills/`, installed plugins) and tell the human what's missing and how to get it:
-   - **From the `superpowers` plugin:** `brainstorming`, `writing-plans` (planner); `test-driven-development`, `executing-plans` (programmer); `systematic-debugging` (qa). If missing, tell the human to install superpowers via `/plugin` (marketplace: `claude-plugins-official`).
-   - **Built-in (always present, no action):** `code-review` (qa).
-   - **Optional/custom:** `react-doctor` (programmer, frontend only) — not publicly distributed; safe to skip.
-   You **cannot** install plugins yourself — that needs the human and would touch protected config. Report and guide only. The pipeline runs fine with any of these missing; they are assists, not hard requirements.
+7. **Check skill dependencies, then PAUSE if any are missing.** Check which referenced skills are present (this session's available skills, `~/.claude/skills/`, installed plugins):
+   - **From the `superpowers` plugin:** `brainstorming`, `writing-plans` (planner); `test-driven-development`, `executing-plans` (programmer); `systematic-debugging` (qa).
+   - **Built-in (always present):** `code-review` (qa) — never counts as missing.
+   - **Optional/custom:** `react-doctor` (programmer, frontend only) — not distributed; never counts as missing, don't prompt for it.
+
+   If all `superpowers` skills are present, continue silently. **If any are missing, STOP and ask the human** (AskUserQuestion) with two options — do not proceed until they answer:
+   - **Install them first** — tell them exactly how: install the `superpowers` plugin via `/plugin` (marketplace `claude-plugins-official`). They can do this now; it activates in the fresh Phase-B session (same restart the scaffold already requires), so the skills and the agents come online together. Then continue.
+   - **Proceed without** — continue scaffolding; the agents degrade gracefully (they do the same work inline). Note which assists they'll be missing.
+
+   You **cannot** install plugins yourself — that is a human action and would touch protected config. Present the choice and wait.
 
 8. **Confirm, then STOP — do not run a task in this session.** Show the file tree you created and a 4-line pipeline summary. Then tell the human to open a **brand-new session at the project root**: `/exit`, then `cd` into the project directory (**if you scaffolded into a subdir, `cd` into that subdir**) and start a fresh `claude` session there. **Resuming the same chat does not work** — it keeps the stale agent registry and the named agents won't be found.
    - **Why this is mandatory:** `.claude/agents/*.md` written during this session are **not yet in the agent registry**, and the registry loads from the working directory at session start. Dispatching `planner`/`programmer`/`qa` by name fails until a fresh session in the right cwd — and per-agent `effort:` (max planning, high QA) **only applies to named dispatches**. Run Phase B in the same session and you lose the effort pinning.
