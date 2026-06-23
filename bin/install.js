@@ -24,7 +24,7 @@ function version() {
 }
 
 function parseArgs(argv) {
-  const args = { target: null, path: null, yes: false, check: false, help: false };
+  const args = { target: null, path: null, yes: false, check: false, help: false, autoUpdate: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--global' || a === '-g') args.target = 'global';
@@ -32,6 +32,8 @@ function parseArgs(argv) {
     else if (a === '--path') args.path = argv[++i];
     else if (a === '--yes' || a === '-y') args.yes = true;
     else if (a === '--check') args.check = true;
+    else if (a === '--with-auto-update') args.autoUpdate = true;
+    else if (a === '--no-auto-update') args.autoUpdate = false;
     else if (a === '--help' || a === '-h') args.help = true;
   }
   return args;
@@ -57,6 +59,25 @@ function ask(question) {
   return new Promise((resolve) => rl.question(question, (a) => { rl.close(); resolve(a.trim()); }));
 }
 
+// Registers a SessionStart hook in ~/.claude/settings.json. Idempotent and safe:
+// never overwrites an unparseable settings file, and preserves all existing keys/hooks.
+function enableAutoUpdate(dest) {
+  const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+  const cmd = `node "${path.join(dest, 'update-check.js')}"`;
+  let settings = {};
+  if (fs.existsSync(settingsPath)) {
+    let raw;
+    try { raw = fs.readFileSync(settingsPath, 'utf8'); } catch { return 'error'; }
+    try { settings = JSON.parse(raw); } catch { return 'invalid'; }
+  }
+  settings.hooks = settings.hooks || {};
+  settings.hooks.SessionStart = settings.hooks.SessionStart || [];
+  if (JSON.stringify(settings.hooks.SessionStart).includes('update-check.js')) return 'already';
+  settings.hooks.SessionStart.push({ hooks: [{ type: 'command', command: cmd }] });
+  try { fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n'); } catch { return 'error'; }
+  return 'enabled';
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const v = version();
@@ -70,6 +91,8 @@ Usage:  npx github:AlaskanTuna/pm-workflow [options]
   -p, --project      Install to ./.claude/skills    (current project)
       --path <dir>   Install into a custom skills directory
   -y, --yes          No prompts; use defaults/flags
+      --with-auto-update  Enable the daily auto-update SessionStart hook (global only)
+      --no-auto-update    Skip the auto-update hook
       --check        Report installed vs available version, then exit
   -h, --help         Show this help`);
     return;
@@ -106,7 +129,28 @@ Usage:  npx github:AlaskanTuna/pm-workflow [options]
 
   console.log(`\n  ${existed ? '✓ Updated' : '✓ Installed'} pm-workflow v${v}`);
   console.log(`    → ${dest}\n`);
-  console.log('  Use it:  open Claude Code in a project and run  /pm-workflow');
+
+  // Auto-update SessionStart hook — global installs only.
+  const isGlobal = skillsDir === path.join(os.homedir(), '.claude', 'skills');
+  let wantAuto = args.autoUpdate;
+  if (isGlobal && wantAuto === null && !args.yes) {
+    const a = await ask('  Enable auto-update? Adds a SessionStart hook that checks GitHub ~daily and updates this skill. [y/N]: ');
+    wantAuto = /^y(es)?$/i.test(a);
+  }
+  if (wantAuto === true && isGlobal) {
+    const r = enableAutoUpdate(dest);
+    const msg = {
+      enabled: '  Auto-update:  ✓ SessionStart hook installed (checks ~daily).',
+      already: '  Auto-update:  already enabled.',
+      invalid: '  Auto-update:  skipped — ~/.claude/settings.json is not valid JSON; add the hook manually.',
+      error:   '  Auto-update:  skipped — could not write settings.json; add the hook manually.',
+    }[r];
+    console.log(msg);
+  } else if (wantAuto === true && !isGlobal) {
+    console.log('  Auto-update:  only supported for global installs; skipped.');
+  }
+
+  console.log('\n  Use it:  open Claude Code in a project and run  /pm-workflow');
   console.log('  Update:  re-run  npx github:AlaskanTuna/pm-workflow#main\n');
 }
 

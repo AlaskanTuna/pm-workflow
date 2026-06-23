@@ -23,12 +23,13 @@ Do this when the workflow isn't set up yet (no `docs/roles.md`). Skip to Phase B
    - Project name + one-line purpose
    - Primary stack (if ambiguous)
    - Whether agents may create commits, or human-only commits
+   - **Gate 2 (ship) mode** + **target branch** (default `main`): `direct` (commit + push), `pr-manual` (PM opens a PR, human merges), or `pr-auto` (PM opens a PR and self-merges).
    Keep it short — prefer detection over asking.
 
 4. **Create directories:** `docs/` and `.claude/agents/`.
 
 5. **Copy templates into place** (do **not** overwrite existing files — if one exists, diff and ask):
-   - `templates/CLAUDE.md` → `.claude/CLAUDE.md`, filling every `{{PLACEHOLDER}}` from detection + answers. Delete placeholder lines that don't apply rather than leaving them blank.
+   - `templates/CLAUDE.md` → `.claude/CLAUDE.md`, filling every `{{PLACEHOLDER}}` from detection + answers. Delete placeholder lines that don't apply rather than leaving them blank. Specifically: fill `{{GATE2_MODE}}` + `{{TARGET_BRANCH}}` from step 3; keep the full **RTK instructions block** (between the `<!-- rtk-instructions -->` markers at the end) **only if `rtk` is installed** (`which rtk` succeeds), deleting that block and its `{{RTK_BLOCK …}}` instruction line otherwise; the full **Karpathy guidelines** block stays for every project.
    - `templates/roles.md` → `docs/roles.md` (verbatim).
    - `templates/plan.md` → `docs/plan.md`; `templates/progress.md` → `docs/progress.md`; `templates/test.md` → `docs/test.md` (verbatim).
    - `templates/settings.local.json` → `.claude/settings.local.json`.
@@ -71,9 +72,16 @@ When the human gives a task, run the pipeline. Dispatch each role via the **Agen
 
 4. **Review.** Dispatch `qa`. It writes a verdict to `docs/test.md`.
 
-5. **═ GATE 2 ═** Relay the QA verdict to the human.
+5. **═ GATE 2 ═** Relay the QA verdict to the human, then **ship per the project's Gate 2 mode** (recorded in `.claude/CLAUDE.md`):
    - **Reject** / changes needed → dispatch `programmer` again with the QA findings, then re-run `qa`. Loop until Approve.
-   - **Approve** → propose a Conventional Commit message and ask the human to authorize **commit (+ push)**. Run `git` **only** on explicit authorization. Never `--force`, never push to a new remote without confirmation.
+   - **Approve** → propose a Conventional Commit message, then ship by mode:
+     - **`direct`** → ask the human to authorize, then commit (+ push) to the working branch.
+     - **`pr-manual` / `pr-auto`** → first judge the change size:
+       - **Small** (hotfix, typo, doc/config tweak, single trivial edit) → commit + push **directly to the target branch**. No PR, no feature branch.
+       - **Substantial** (a feature, a multi-file change, or the end of an iteration) → create a feature branch, commit, push, and open a PR into the target branch with a change summary (`gh pr create`).
+         - `pr-manual` → hand the PR link to the human to review and merge. **Do not merge yourself.** Ask them to delete the branch on merge, or delete it after they confirm: `git push origin --delete <branch>`.
+         - `pr-auto` → self-merge **with branch cleanup**: `gh pr merge --squash --delete-branch`, then report. Only in this mode may the agent merge.
+   - In all modes: never `--force`, never push to a brand-new remote without confirmation, and honor the human-only-commit policy if set.
 
 6. **Close the loop.** Ensure `docs/progress.md` is updated, then await the next task.
 

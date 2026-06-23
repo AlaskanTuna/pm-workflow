@@ -1,0 +1,44 @@
+name: Release (latest only)
+
+# On every pushed v* tag: prune all other releases and tags, then publish this
+# tag as the sole "Latest" release. Keeps the repo showing only the newest version.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish latest-only release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # 1) Delete every other GitHub Release (and its tag) — keep only this one.
+          for r in $(gh release list --repo "$REPO" --json tagName -q '.[].tagName'); do
+            if [ "$r" != "$TAG" ]; then
+              gh release delete "$r" --repo "$REPO" --yes --cleanup-tag || true
+            fi
+          done
+
+          # 2) Delete every other tag — keep only the tag just pushed.
+          for t in $(gh api --paginate "repos/$REPO/tags" -q '.[].name'); do
+            if [ "$t" != "$TAG" ]; then
+              gh api --method DELETE "repos/$REPO/git/refs/tags/$t" || true
+            fi
+          done
+
+          # 3) Publish this tag as the sole Latest release, with auto-generated notes.
+          gh release create "$TAG" --repo "$REPO" --title "$TAG" --generate-notes --latest
