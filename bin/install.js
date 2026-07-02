@@ -104,6 +104,13 @@ function reportDeps() {
       console.log('      Install the superpowers plugin in Claude Code:  /plugin  →  claude-plugins-official');
     }
     console.log('    ℹ react-doctor (React projects only):  npx react-doctor@latest install');
+    try {
+      require('child_process').execFileSync('codex', ['--version'],
+        { stdio: 'ignore', timeout: 5000, shell: process.platform === 'win32' });
+      console.log('    ✓ codex CLI — found (optional Codex delegation available at scaffold)');
+    } catch {
+      console.log('    ℹ codex CLI (optional Codex delegation): not found — https://github.com/openai/codex');
+    }
     console.log('');
   } catch {}
 }

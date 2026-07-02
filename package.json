@@ -1,6 +1,6 @@
 {
   "name": "pm-workflow-skill",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "A PM-orchestrated, role-based agent workflow skill for Claude Code — scaffolds planner/programmer/qa subagents pinned to per-role model + effort, with human approval gates after planning and after QA.",
   "bin": {
     "pm-workflow": "bin/install.js"

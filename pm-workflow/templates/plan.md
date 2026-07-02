@@ -16,6 +16,9 @@ _PL lists anything ambiguous here for the human to resolve at Gate 1. Empty when
 
 **Purpose/Issue:** <one-paragraph description of what and why>
 
+**Files:** <the files/dirs this task is expected to touch — used to judge wave parallelism>
+**Depends on:** <task numbers this task must wait for, or "none">
+
 **Implementation:**
 
 - [ ] Step 1 → verify: <how we know it's done>
@@ -27,4 +30,4 @@ _PL lists anything ambiguous here for the human to resolve at Gate 1. Empty when
 
 ## Done
 
-_PG ticks `- [x]` and moves completed tasks here as they pass QA._
+_PG ticks `- [x]` when a step is implemented and its test is green. Tasks move to **Done** only after they pass QA — the PM moves them when relaying the verdict._

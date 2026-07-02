@@ -11,6 +11,7 @@ Defines every participant's role, responsibilities, and boundaries in this proje
 | PL  | Planner           | Opus / max     | `brainstorming`, `writing-plans`                             |
 | PG  | Programmer        | Sonnet / high  | `test-driven-development`, `executing-plans`, `react-doctor` |
 | QA  | QA Reviewer       | Opus / high    | `code-review`, `systematic-debugging`                        |
+| CX  | Codex (optional)  | OpenAI Codex   | per Codex mode: read-only second opinion at QA, blind peer consult at planning (human-triggered), and/or PG-contract workers |
 
 > Models/efforts are pinned in each `.claude/agents/*.md` frontmatter. The PM is whatever model you launch the session as — **Opus / high recommended** (it only routes and gates). `settings.local.json` carries a session-level `fallbackModel` as an outage hedge.
 
@@ -31,7 +32,7 @@ Runs the pipeline from one prompt; never implements. Dispatches PL, PG, QA as su
 | Item     | Detail                                                                    |
 | -------- | ------------------------------------------------------------------------- |
 | Trigger  | PM starts a new feature/phase                                             |
-| Reads    | `CLAUDE.md`, `docs/prd.md`, `docs/trd.md`, `docs/roadmap.md` (if present) |
+| Reads    | `AGENTS.md`, `docs/prd.md`, `docs/trd.md`, `docs/roadmap.md` (if present) |
 | Produces | Checkboxed task breakdown in `docs/plan.md` + open-questions list         |
 | Updates  | `docs/plan.md` only                                                       |
 
@@ -42,7 +43,7 @@ Runs the pipeline from one prompt; never implements. Dispatches PL, PG, QA as su
 | Item     | Detail                                                      |
 | -------- | ----------------------------------------------------------- |
 | Trigger  | Plan passes Gate 1; or QA returns a Reject                  |
-| Reads    | `docs/plan.md`, `docs/trd.md`, `CLAUDE.md`, relevant skills |
+| Reads    | `docs/plan.md`, `docs/trd.md`, `AGENTS.md`, relevant skills |
 | Produces | Code + ticked checkboxes + dated `docs/progress.md` entries |
 
 **Rules:** Surgical changes only. TDD for logic. Surfaces ambiguity, never guesses. Does not commit or re-architect.
@@ -56,6 +57,14 @@ Runs the pipeline from one prompt; never implements. Dispatches PL, PG, QA as su
 | Verdict | **Approve** / **Approve with comments** / **Reject with reasons** → `docs/test.md` |
 
 **Rules:** Review only; never rewrites. Does not re-litigate `docs/trd.md` architecture.
+
+## Execution Adapters
+
+The workflow contract — roles, `docs/` files, gates — is **tool-agnostic**; canonical project instructions live in `AGENTS.md` at the repo root. How each tool realizes the roles:
+
+- **Claude Code** (full experience): the PM is the main session; PL/PG/QA are named subagents in `.claude/agents/` with pinned model + effort. `CLAUDE.md` is a thin adapter importing `AGENTS.md`.
+- **Codex CLI, Antigravity, or any other agent** (degraded but correct): one context plays every role **sequentially** — same phases, same docs files, same gates. Announce which role you're in as you switch. Model pinning doesn't apply; the human gates always do.
+- **Codex delegation** (optional, from any orchestrator with the `codex` CLI): per the Codex mode in `AGENTS.md` — a read-only second-opinion review at QA, a blind peer consult at planning for high-stakes tasks (human-triggered; PL and Codex get the same brief independently and neither sees the other's output before synthesis), and/or Codex workers implementing PG tasks.
 
 ## Handoff Protocol & Gates
 
@@ -73,10 +82,12 @@ PO gives task
                 ╚══════════╝   · pr-auto: PR→PM self-merges → next task
 ```
 
-**Gate 2 ship modes** (set per project in `.claude/CLAUDE.md`): **direct** — commit + push to the working branch · **pr-manual** — PM opens a PR into the target branch and the human merges · **pr-auto** — PM opens a PR and self-merges. In the PR modes a PR is opened **only for substantial changes / the end of an iteration**; small hotfixes commit + push straight to the target branch, and merged PR branches are deleted (`--delete-branch`). The human owns the choice; agents never deviate from it.
+**Gate 2 ship modes** (set per project in `AGENTS.md`): **direct** — commit + push to the working branch · **pr-manual** — PM opens a PR into the target branch and the human merges · **pr-auto** — PM opens a PR and self-merges. In the PR modes a PR is opened **only for substantial changes / the end of an iteration**; small hotfixes commit + push straight to the target branch, and merged PR branches are deleted (`--delete-branch`). The human owns the choice; agents never deviate from it.
 
 **Fast lane** (PM-triaged, human-confirmed): a trivially small task (typo, one-liner, doc/config tweak) may skip PL and Gate 1 — the PM supplies explicit acceptance criteria in the dispatch and sends the task straight to PG. **QA and Gate 2 always run.** When in doubt, full pipeline.
 
 **Loop cap:** after 2 consecutive QA Rejects on the same task, the PM stops looping and asks the human: keep looping, escalate PG's fix to Opus (one-off), or take over manually.
 
-**Hard rules:** One agent per task at a time. Handoffs go through the `docs/` files. The human reads the diff before any commit/merge. No agent pushes or merges without honoring the Gate 2 mode (and human authorization where the mode requires it).
+**Parallel waves:** tasks whose `Depends on:` are satisfied and whose `Files:` scopes are **disjoint** may run as a wave of up to 3 PGs (or Codex workers, per the Codex mode) — the wave grouping is part of what the human approves at Gate 1. In a wave, PGs stay inside their file scope (stop-and-report otherwise), run targeted tests only, and don't write `docs/` — the PM ticks the plan and logs progress. Waves never overlap.
+
+**Hard rules:** One agent per task. Parallelism only within a Gate-1-approved wave with disjoint file scopes — otherwise one agent at a time. Handoffs go through the `docs/` files. The human reads the diff before any commit/merge. No agent pushes or merges without honoring the Gate 2 mode (and human authorization where the mode requires it).
