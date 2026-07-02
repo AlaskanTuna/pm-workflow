@@ -83,7 +83,9 @@ async function main() {
     return;
   }
   try {
-    execFileSync('npx', ['-y', `github:${REPO}#main`, '-g', '-y'], { timeout: 60000, stdio: 'ignore' });
+    // shell:true on Windows — npx is npx.cmd there, which execFile can't spawn directly.
+    execFileSync('npx', ['-y', `github:${REPO}#main`, '-g', '-y'],
+      { timeout: 60000, stdio: 'ignore', shell: process.platform === 'win32' });
     note(`auto-updated v${local} → v${remote}.`);
   } catch {
     note(`v${remote} available (you're on v${local}). Update: npx github:${REPO}#main`);

@@ -78,6 +78,36 @@ function enableAutoUpdate(dest) {
   return 'enabled';
 }
 
+// Reports whether the optional assist skills the agents use are present, so the
+// user can install them BEFORE the first scaffold (which otherwise pauses to ask).
+// Informational only and fail-silent — the workflow degrades gracefully without them.
+function reportDeps() {
+  try {
+    const home = os.homedir();
+    const superpowersSkills = ['brainstorming', 'writing-plans', 'test-driven-development', 'executing-plans', 'systematic-debugging'];
+    let pluginEnabled = false;
+    try {
+      const settings = JSON.parse(fs.readFileSync(path.join(home, '.claude', 'settings.json'), 'utf8'));
+      const plugins = settings.enabledPlugins || {};
+      pluginEnabled = Object.keys(plugins).some((k) => k.startsWith('superpowers@') && plugins[k]);
+    } catch {}
+    const hasSkill = (name) =>
+      pluginEnabled ||
+      fs.existsSync(path.join(home, '.claude', 'skills', name, 'SKILL.md')) ||
+      fs.existsSync(path.join(process.cwd(), '.claude', 'skills', name, 'SKILL.md'));
+    const missing = superpowersSkills.filter((s) => !hasSkill(s));
+    console.log('  Optional assists (used by the agents if present; everything degrades gracefully):');
+    if (missing.length === 0) {
+      console.log('    ✓ superpowers skills — all found');
+    } else {
+      console.log(`    ✗ missing: ${missing.join(', ')}`);
+      console.log('      Install the superpowers plugin in Claude Code:  /plugin  →  claude-plugins-official');
+    }
+    console.log('    ℹ react-doctor (React projects only):  npx react-doctor@latest install');
+    console.log('');
+  } catch {}
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const v = version();
@@ -129,6 +159,8 @@ Usage:  npx github:AlaskanTuna/pm-workflow [options]
 
   console.log(`\n  ${existed ? '✓ Updated' : '✓ Installed'} pm-workflow v${v}`);
   console.log(`    → ${dest}\n`);
+
+  reportDeps();
 
   // Auto-update SessionStart hook — global installs only.
   const isGlobal = skillsDir === path.join(os.homedir(), '.claude', 'skills');

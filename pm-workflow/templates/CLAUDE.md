@@ -78,6 +78,8 @@ This project runs the **PM → PL → PG → QA** pipeline defined in `docs/role
 4. **QA** reviews the diff into `docs/test.md` with a verdict.
 5. **Gate 2** — PM relays the verdict. Reject → back to PG. Approve → PM proposes a Conventional Commit message and **ships per this project's Gate 2 mode** (see Working Conventions / `docs/roles.md`): `direct` commit+push, or — for substantial changes only — open a PR for manual or self-merge (small fixes commit straight to the target branch), deleting the branch on merge. It never pushes or merges without honoring that mode and any required human authorization.
 
+**Fast lane** (human-confirmed): trivially small tasks (typo, one-liner, doc/config tweak) may skip PL and Gate 1 — the PM supplies acceptance criteria and dispatches PG directly. QA and Gate 2 always run. **Loop cap:** after 2 consecutive QA Rejects on a task, the PM stops and asks the human how to proceed.
+
 Reference `docs/prd.md` (requirements) and `docs/trd.md` (architecture/contracts) when they exist.
 
 ---

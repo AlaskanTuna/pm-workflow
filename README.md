@@ -9,7 +9,7 @@ Invoke `/pm-workflow` in any project and the current session becomes the **PM (o
 | **PL** Planner | Opus / max | `brainstorming`, `writing-plans` |
 | **PG** Programmer | Sonnet / high | `test-driven-development`, `executing-plans` |
 | **QA** Reviewer | Opus / high | `code-review`, `systematic-debugging` |
-| **PM** Orchestrator | your session model | routes, holds the gates |
+| **PM** Orchestrator | your session model (Opus / high recommended) | routes, holds the gates |
 
 > The design: **spend reasoning at the bookends (plan + review), run cheap in the middle (implement).**
 
@@ -40,8 +40,10 @@ This copies the skill into `~/.claude/skills/pm-workflow` (global) or `./.claude
 ## Use
 
 1. **Scaffold** — in a new project, run `/pm-workflow` and answer the few setup questions (including the **Gate 2 ship mode**, below). It creates `.claude/` (CLAUDE.md, settings.local.json, `agents/{planner,programmer,qa}.md`) and `docs/` (roles, plan, progress, test). The scaffolded `CLAUDE.md` embeds the full Karpathy coding guidelines, plus the complete RTK command reference if RTK is installed on the machine.
-2. **Restart** — open a **brand-new session at the project root** (`/exit`, `cd` into the project, start `claude` again). This is required once so the new subagents register. Resuming the same chat will *not* pick them up.
+2. **Restart** — open a **brand-new session at the project root** (`/exit`, `cd` into the project, start `claude` again). This is required once so the new subagents register. Resuming the same chat will *not* pick them up. If you gave a task alongside the scaffold request, it's **queued in `docs/.pm-handoff.md`** and the fresh session resumes it automatically.
 3. **Run tasks** — `/pm-workflow <task>`. The PM runs **plan → Gate 1 (you approve) → implement → QA → Gate 2 (ship)**. Every session after the first works with no restart.
+   - **Fast lane:** for trivially small tasks (typo, one-liner, doc/config tweak) the PM offers to skip the planner and Gate 1 — you confirm, it supplies acceptance criteria itself, and QA + Gate 2 still always run.
+   - **Loop cap:** after 2 consecutive QA rejects on a task, the PM stops and asks you — keep looping, escalate the fix to Opus, or take over.
 
 **Gate 2 ship modes** (chosen per project at scaffold time):
 - **direct** — commit + push to the working branch.
@@ -64,7 +66,7 @@ The workflow runs **standalone** — the skills below are *optional assists* the
 | `code-review` | qa | built into Claude Code | always available |
 | `react-doctor` | programmer (React projects) | `npx react-doctor@latest install` | skipped on non-React projects, or if absent |
 
-For the full experience, install the **superpowers** plugin (`/plugin` → `claude-plugins-official` marketplace), and for React projects, run `npx react-doctor@latest install`.
+For the full experience, install the **superpowers** plugin (`/plugin` → `claude-plugins-official` marketplace), and for React projects, run `npx react-doctor@latest install`. The installer prints a status report of these assists after every install, so you can set them up before your first scaffold.
 
 ## Update
 
@@ -79,6 +81,8 @@ npx github:AlaskanTuna/pm-workflow#main
 ```bash
 npx github:AlaskanTuna/pm-workflow --check
 ```
+
+Updating the skill does **not** rewrite projects you already scaffolded. To pull template fixes into a project, ask the PM to *upgrade the scaffold* — it diffs your `docs/roles.md`, `.claude/agents/*` and `settings.local.json` against the new templates, flags anything you customized, and refreshes only what you approve (your `CLAUDE.md`, plan, progress, and test files are never touched).
 
 ### Automatic updates (opt-in)
 

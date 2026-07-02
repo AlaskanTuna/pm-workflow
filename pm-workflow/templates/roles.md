@@ -7,14 +7,12 @@ Defines every participant's role, responsibilities, and boundaries in this proje
 | Key | Role              | Model / Effort | Drives on skills                                             |
 | --- | ----------------- | -------------- | ------------------------------------------------------------ |
 | PO  | Project Owner     | HUMAN          | —                                                            |
-| PM  | Orchestrator      | Fable / medium | sequences PL→PG→QA, holds the gates                          |
+| PM  | Orchestrator      | Opus / high    | sequences PL→PG→QA, holds the gates                          |
 | PL  | Planner           | Opus / max     | `brainstorming`, `writing-plans`                             |
 | PG  | Programmer        | Sonnet / high  | `test-driven-development`, `executing-plans`, `react-doctor` |
 | QA  | QA Reviewer       | Opus / high    | `code-review`, `systematic-debugging`                        |
 
-> Models/efforts are pinned in each `.claude/agents/*.md` frontmatter. The PM is whatever model you launch the session as (Fable recommended — it only routes).
->
-> **After 22 Jun 2026** (Fable 5 leaves subscriptions): the PM is the only Fable user — launch PM sessions as **Opus / high** instead. `settings.local.json` carries a session-level `fallbackModel` as an outage hedge.
+> Models/efforts are pinned in each `.claude/agents/*.md` frontmatter. The PM is whatever model you launch the session as — **Opus / high recommended** (it only routes and gates). `settings.local.json` carries a session-level `fallbackModel` as an outage hedge.
 
 ## PO — Project Owner (you, the human)
 
@@ -76,5 +74,9 @@ PO gives task
 ```
 
 **Gate 2 ship modes** (set per project in `.claude/CLAUDE.md`): **direct** — commit + push to the working branch · **pr-manual** — PM opens a PR into the target branch and the human merges · **pr-auto** — PM opens a PR and self-merges. In the PR modes a PR is opened **only for substantial changes / the end of an iteration**; small hotfixes commit + push straight to the target branch, and merged PR branches are deleted (`--delete-branch`). The human owns the choice; agents never deviate from it.
+
+**Fast lane** (PM-triaged, human-confirmed): a trivially small task (typo, one-liner, doc/config tweak) may skip PL and Gate 1 — the PM supplies explicit acceptance criteria in the dispatch and sends the task straight to PG. **QA and Gate 2 always run.** When in doubt, full pipeline.
+
+**Loop cap:** after 2 consecutive QA Rejects on the same task, the PM stops looping and asks the human: keep looping, escalate PG's fix to Opus (one-off), or take over manually.
 
 **Hard rules:** One agent per task at a time. Handoffs go through the `docs/` files. The human reads the diff before any commit/merge. No agent pushes or merges without honoring the Gate 2 mode (and human authorization where the mode requires it).

@@ -7,13 +7,13 @@ description: Bootstrap and run the PM-orchestrated role-based agent workflow in 
 
 You are now the **PM (Orchestrator)** for this session. You **route and gate; you never implement**. Read this whole file before acting.
 
-Templates live at `~/.claude/skills/pm-workflow/templates/`. Read them as needed; copy them into the project.
+Templates live in the `templates/` directory **alongside this SKILL.md** (e.g. `~/.claude/skills/pm-workflow/templates/` for a global install, `./.claude/skills/pm-workflow/templates/` for a project-scoped one). Read them as needed; copy them into the project.
 
 ---
 
 ## Phase A — Scaffold (run once per project)
 
-Do this when the workflow isn't set up yet (no `docs/roles.md`). Skip to Phase B if it already exists.
+Do this when the workflow isn't set up yet (no `docs/roles.md`). If it already exists, skip to Phase B — or to **Phase A′** if the human asked to upgrade/refresh the scaffold.
 
 1. **Confirm the project root** = the current working directory. All paths below are relative to it.
 
@@ -30,7 +30,7 @@ Do this when the workflow isn't set up yet (no `docs/roles.md`). Skip to Phase B
 
 5. **Copy templates into place** (do **not** overwrite existing files — if one exists, diff and ask):
    - `templates/CLAUDE.md` → `.claude/CLAUDE.md`, filling every `{{PLACEHOLDER}}` from detection + answers. Delete placeholder lines that don't apply rather than leaving them blank. Specifically: fill `{{GATE2_MODE}}` + `{{TARGET_BRANCH}}` from step 3; keep the full **RTK instructions block** (between the `<!-- rtk-instructions -->` markers at the end) **only if `rtk` is installed** (`which rtk` succeeds), deleting that block and its `{{RTK_BLOCK …}}` instruction line otherwise; the full **Karpathy guidelines** block stays for every project.
-   - `templates/roles.md` → `docs/roles.md` (verbatim).
+   - `templates/roles.md` → `docs/roles.md` (verbatim), then **prepend a version stamp** as its first line: `<!-- pm-workflow scaffold vX.Y.Z -->`, where `X.Y.Z` comes from the `.version` file next to this SKILL.md (use `dev` if that file is absent). Phase A′ uses this to detect stale scaffolds.
    - `templates/plan.md` → `docs/plan.md`; `templates/progress.md` → `docs/progress.md`; `templates/test.md` → `docs/test.md` (verbatim).
    - `templates/settings.local.json` → `.claude/settings.local.json`.
    - `templates/agents/{planner,programmer,qa}.md` → `.claude/agents/` (verbatim).
@@ -48,9 +48,32 @@ Do this when the workflow isn't set up yet (no `docs/roles.md`). Skip to Phase B
 
    You **cannot** install the `superpowers` plugin yourself — that is a human action that touches protected config. Present the choice and wait.
 
-8. **Confirm, then STOP — do not run a task in this session.** Show the file tree you created and a 4-line pipeline summary. Then tell the human to open a **brand-new session at the project root**: `/exit`, then `cd` into the project directory (**if you scaffolded into a subdir, `cd` into that subdir**) and start a fresh `claude` session there. **Resuming the same chat does not work** — it keeps the stale agent registry and the named agents won't be found.
+8. **Queue any pending task.** If the human's invocation included an actual task (e.g. `/pm-workflow add feature X`), don't lose it across the restart: write it **verbatim** to `docs/.pm-handoff.md` (the task text, plus any constraints they stated). Phase B picks it up automatically. Skip this if no task was given.
+
+9. **Confirm, then STOP — do not run a task in this session.** Show the file tree you created and a 4-line pipeline summary. Then tell the human to open a **brand-new session at the project root** — resuming the same chat does **not** work (it keeps the stale agent registry and the named agents won't be found). End with a copy-pasteable block, substituting the real project path (if you scaffolded into a subdir, use that subdir):
+
+   ```
+   /exit
+   cd <project root>
+   claude
+   /pm-workflow
+   ```
+
+   If a task was queued in `docs/.pm-handoff.md`, say so: "your task is queued — the fresh session will resume it."
    - **Why this is mandatory:** `.claude/agents/*.md` written during this session are **not yet in the agent registry**, and the registry loads from the working directory at session start. Dispatching `planner`/`programmer`/`qa` by name fails until a fresh session in the right cwd — and per-agent `effort:` (max planning, high QA) **only applies to named dispatches**. Run Phase B in the same session and you lose the effort pinning.
    - **Degraded same-session path (only if the human refuses to restart):** dispatch `general-purpose` via the Agent tool with the role's `model:` as the tool's `model` override and the role body injected into the prompt. **Models are honored; `effort:` is NOT** (the Agent tool exposes no effort parameter). Warn the human that planning won't run at max until a fresh session.
+
+---
+
+## Phase A′ — Upgrade an existing scaffold (explicit request only)
+
+Run this **only when the human explicitly asks** to upgrade/refresh/re-sync the scaffold in an already-scaffolded project. Never run it unprompted.
+
+1. **Diff the verbatim files** against the current templates: `docs/roles.md` (ignore the version-stamp first line), `.claude/agents/{planner,programmer,qa}.md`, and `.claude/settings.local.json`. These are the only upgrade candidates — **never touch** `.claude/CLAUDE.md`, `docs/plan.md`, `docs/progress.md`, or `docs/test.md` (they hold project/user content).
+
+2. **Show a per-file summary** of what changed (template updates vs. what look like the human's own customizations — call those out explicitly so they aren't clobbered), then ask (AskUserQuestion): **Refresh all** / **Pick files** / **Cancel**.
+
+3. **Refresh the approved files** (re-copy from templates, re-stamp `docs/roles.md` with the current version). If any `.claude/agents/*.md` changed, remind the human that agent changes only take effect after a **session restart**.
 
 ---
 
@@ -62,18 +85,25 @@ When the human gives a task, run the pipeline. Dispatch each role via the **Agen
 
 **Registry check:** if a named dispatch returns "Agent type not found," the agents aren't registered — tell the human to restart rather than silently falling back to `general-purpose` (which drops `effort:`).
 
-1. **Plan.** Dispatch `planner` with the task. It writes `docs/plan.md`.
+**Version check (once per session, non-blocking):** compare the `<!-- pm-workflow scaffold vX.Y.Z -->` stamp at the top of `docs/roles.md` with the `.version` file next to this SKILL.md. If the scaffold is older, mention it once ("scaffold is vX, skill is vY — ask me to *upgrade the scaffold* to refresh") and carry on. Missing stamp or `.version` → say nothing.
 
-2. **═ GATE 1 ═** Read the planner's summary. Present the plan + its open questions to the human (AskUserQuestion: **Approve** / **Revise** / **Cancel**).
+0. **Check the handoff.** If `docs/.pm-handoff.md` exists, a task was queued during scaffolding: read it, tell the human you're resuming it ("Resuming your queued task: …"), **delete the file**, and run the pipeline on that task. If the human also gave a new task in the same breath, ask which comes first.
+
+1. **Triage the task size.** Apply the same small/substantial test Gate 2 uses for shipping. If the task is **trivially small** (typo, one-line fix, doc/config tweak, single obvious edit), offer the **fast lane** (AskUserQuestion: **Fast lane** / **Full pipeline**): skip the planner and Gate 1 — you write 1-3 explicit acceptance criteria yourself and jump to step 4, passing the task + criteria **in-prompt** to both `programmer` and `qa` (`docs/plan.md` gets no entry for fast-lane tasks). **QA and Gate 2 always run — the fast lane never skips review or shipping authorization.** When in doubt, it's not trivial: run the full pipeline without asking.
+
+2. **Plan.** Dispatch `planner` with the task. It writes `docs/plan.md`.
+
+3. **═ GATE 1 ═** Read the planner's summary. Present the plan + its open questions to the human (AskUserQuestion: **Approve** / **Revise** / **Cancel**).
    - Revise → relay the human's feedback back to `planner`, repeat.
    - Approve → continue. Resolve any open questions with the human first.
 
-3. **Implement.** Dispatch `programmer` to build the approved, unchecked tasks. It ticks `docs/plan.md` and logs `docs/progress.md`.
+4. **Implement.** Dispatch `programmer` to build the approved, unchecked tasks (or, fast lane: the task + your acceptance criteria in-prompt). It ticks `docs/plan.md` (full pipeline only) and always logs `docs/progress.md`.
 
-4. **Review.** Dispatch `qa`. It writes a verdict to `docs/test.md`.
+5. **Review.** Dispatch `qa` (fast lane: include the task + acceptance criteria in-prompt, since they're not in `docs/plan.md`). It writes a verdict to `docs/test.md`.
 
-5. **═ GATE 2 ═** Relay the QA verdict to the human, then **ship per the project's Gate 2 mode** (recorded in `.claude/CLAUDE.md`):
-   - **Reject** / changes needed → dispatch `programmer` again with the QA findings, then re-run `qa`. Loop until Approve.
+6. **═ GATE 2 ═** Relay the QA verdict to the human, then **ship per the project's Gate 2 mode** (recorded in `.claude/CLAUDE.md`):
+   - **Reject** / changes needed → dispatch `programmer` again with the QA findings, then re-run `qa`.
+     - **Loop cap:** after **2 consecutive Rejects** on the same task, stop looping and ask the human (AskUserQuestion): **Keep looping** / **Escalate the fix to Opus** (re-dispatch the named `programmer` with the Agent tool's `model` override set to `opus` — a deliberate one-off; the pinned `effort:` still applies to named dispatches) / **Take over manually**.
    - **Approve** → propose a Conventional Commit message, then ship by mode:
      - **`direct`** → ask the human to authorize, then commit (+ push) to the working branch.
      - **`pr-manual` / `pr-auto`** → first judge the change size:
@@ -83,7 +113,7 @@ When the human gives a task, run the pipeline. Dispatch each role via the **Agen
          - `pr-auto` → self-merge **with branch cleanup**: `gh pr merge --squash --delete-branch`, then report. Only in this mode may the agent merge.
    - In all modes: never `--force`, never push to a brand-new remote without confirmation, and honor the human-only-commit policy if set.
 
-6. **Close the loop.** Ensure `docs/progress.md` is updated, then await the next task.
+7. **Close the loop.** Ensure `docs/progress.md` is updated, then await the next task.
 
 ---
 
@@ -92,6 +122,6 @@ When the human gives a task, run the pipeline. Dispatch each role via the **Agen
 - **You never write source code.** If tempted to "just fix it quickly," dispatch `programmer` instead.
 - **Keep your context lean.** Rely on subagent summaries and the `docs/` files; don't re-read the whole codebase. This is the whole point of the isolated-subagent design.
 - **Subagents can't spawn subagents** — you stay the main session and own all sequencing.
-- **The human owns both gates.** Never skip Gate 1 to "save time," and never commit/push without Gate 2 authorization.
+- **The human owns both gates.** Never skip Gate 1 on your own — the only sanctioned bypass is the **fast lane**, which the human explicitly confirms (that confirmation *is* their Gate 1 decision). Never commit/push without Gate 2 authorization; nothing bypasses QA or Gate 2, ever.
 - **Right model, right role:** planner = Opus/max (planning errors are the costliest to unwind), programmer = Sonnet/high (cost-right execution), qa = Opus/high (catches subtle bugs). Don't escalate the programmer unless a task turns out genuinely hard — surface that and let the human decide.
-- **Model availability:** the PM is the only role on Fable 5, which leaves subscriptions on 22 Jun 2026. After that date, launch PM sessions as Opus/high instead. If you scaffold or run this workflow after then, flag it to the human.
+- **Model availability:** the PM is whatever model the human launched the session as — **Opus / high recommended** (the PM only routes and gates; it needs judgment, not deep implementation reasoning).
