@@ -1,10 +1,22 @@
 name: Release (latest only)
 
-# On every pushed v* tag: prune all other releases and tags, then publish this
-# tag as the sole "Latest" release. Keeps the repo showing only the newest version.
+# Two ways in, one release path out:
+#   - Push to main: if package.json's version has no matching v* tag yet, the
+#     workflow creates and pushes the tag itself, then releases it. Bumping the
+#     version and pushing to main is all a release takes. Pushes where the tag
+#     already exists (docs, hotfixes) exit early and release nothing.
+#   - Push a v* tag manually: releases that tag directly (unchanged behavior).
+# Either way: prune all other releases and tags, then publish this tag as the
+# sole "Latest" release. Keeps the repo showing only the newest version.
+#
+# Note: the tag-and-release must live in ONE workflow — a tag pushed with the
+# default GITHUB_TOKEN does not trigger other workflows, so a separate
+# tag-watcher workflow would never fire the release.
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
@@ -18,10 +30,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Resolve the release tag (create it on version bumps)
+        id: tag
+        run: |
+          set -euo pipefail
+
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # Manual tag push — release exactly what was pushed.
+            TAG="$GITHUB_REF_NAME"
+          else
+            # Push to main — release only if package.json points at a new version.
+            TAG="v$(jq -r .version package.json)"
+            if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+              echo "Tag $TAG already exists — nothing to release."
+              echo "tag=" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            git tag "$TAG"
+            git push origin "$TAG"
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
       - name: Publish latest-only release
+        if: steps.tag.outputs.tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.tag.outputs.tag }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
@@ -33,7 +68,7 @@ jobs:
             fi
           done
 
-          # 2) Delete every other tag — keep only the tag just pushed.
+          # 2) Delete every other tag — keep only the tag being released.
           for t in $(gh api --paginate "repos/$REPO/tags" -q '.[].name'); do
             if [ "$t" != "$TAG" ]; then
               gh api --method DELETE "repos/$REPO/git/refs/tags/$t" || true
