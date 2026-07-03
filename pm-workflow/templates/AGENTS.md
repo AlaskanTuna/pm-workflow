@@ -173,7 +173,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 <!-- andrej-karpathy-skills -->
 
-{{RTK_BLOCK — KEEP everything between the two `rtk-instructions` markers below ONLY if `rtk` is installed (`which rtk` succeeds); otherwise DELETE from the opening marker through the closing marker (and this instruction line). You can regenerate/refresh it any time with `rtk init --claude-md`.}}
+{{RTK_BLOCK — If `rtk` is installed (`which rtk` succeeds) KEEP everything between the two `rtk-instructions` markers below and remove only this instruction line; otherwise DELETE from the opening marker through the closing marker AND this instruction line. This directive line must never survive into the final AGENTS.md. You can regenerate/refresh the block any time with `rtk init --claude-md`.}}
 
 <!-- rtk-instructions v2 -->
 
