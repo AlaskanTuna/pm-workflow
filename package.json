@@ -1,5 +1,8 @@
 {
   "name": "pm-workflow-skill",
+  "scripts": {
+    "format": "prettier --write ."
+  },
   "version": "1.6.6",
   "description": "A PM-orchestrated, role-based agent workflow skill for Claude Code — scaffolds planner/programmer/qa subagents pinned to per-role model + effort, with human approval gates after planning and after QA.",
   "bin": {
@@ -28,5 +31,8 @@
     "subagents",
     "workflow",
     "orchestration"
-  ]
+  ],
+  "devDependencies": {
+    "prettier": "^3.9.4"
+  }
 }

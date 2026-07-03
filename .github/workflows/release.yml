@@ -6,7 +6,7 @@ name: Release (latest only)
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 permissions:
   contents: write

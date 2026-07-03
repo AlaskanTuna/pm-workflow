@@ -26,7 +26,7 @@ Do this when the workflow isn't set up yet (no `docs/roles.md`). If it already e
    - Whether agents may create commits, or human-only commits
    - **Gate 2 (ship) mode** + **target branch** (default `main`): `direct` (commit + push), `pr-manual` (PM opens a PR, human merges), or `pr-auto` (PM opens a PR and self-merges).
    - **Codex delegation mode** — ask **only if the `codex` CLI is installed**, skip silently otherwise: `off` (default) / `second-opinion` (read-only Codex review alongside QA) / `executor` (Codex workers may implement PG tasks) / `both`.
-   Keep it short — prefer detection over asking.
+     Keep it short — prefer detection over asking.
 
 4. **Create directories:** `docs/` and `.claude/agents/`.
 
@@ -65,16 +65,17 @@ Do this when the workflow isn't set up yet (no `docs/roles.md`). If it already e
 
 10. **Confirm, then STOP — do not run a task in this session.** Show the file tree you created and a 4-line pipeline summary. Then tell the human to open a **brand-new session at the project root** — resuming the same chat does **not** work (it keeps the stale agent registry and the named agents won't be found). End with a copy-pasteable block, substituting the real project path (if you scaffolded into a subdir, use that subdir):
 
-   ```
-   /exit
-   cd <project root>
-   claude
-   /pm-workflow
-   ```
+```
+/exit
+cd <project root>
+claude
+/pm-workflow
+```
 
-   If a task was queued in `docs/.pm-handoff.md`, say so: "your task is queued — the fresh session will resume it."
-   - **Why this is mandatory:** `.claude/agents/*.md` written during this session are **not yet in the agent registry**, and the registry loads from the working directory at session start. Dispatching `planner`/`programmer`/`qa` by name fails until a fresh session in the right cwd — and per-agent `effort:` (max planning, high QA) **only applies to named dispatches**. Run Phase B in the same session and you lose the effort pinning.
-   - **Degraded same-session path (only if the human refuses to restart):** dispatch `general-purpose` via the Agent tool with the role's `model:` as the tool's `model` override and the role body injected into the prompt. **Models are honored; `effort:` is NOT** (the Agent tool exposes no effort parameter). Warn the human that planning won't run at max until a fresh session.
+If a task was queued in `docs/.pm-handoff.md`, say so: "your task is queued — the fresh session will resume it."
+
+- **Why this is mandatory:** `.claude/agents/*.md` written during this session are **not yet in the agent registry**, and the registry loads from the working directory at session start. Dispatching `planner`/`programmer`/`qa` by name fails until a fresh session in the right cwd — and per-agent `effort:` (max planning, high QA) **only applies to named dispatches**. Run Phase B in the same session and you lose the effort pinning.
+- **Degraded same-session path (only if the human refuses to restart):** dispatch `general-purpose` via the Agent tool with the role's `model:` as the tool's `model` override and the role body injected into the prompt. **Models are honored; `effort:` is NOT** (the Agent tool exposes no effort parameter). Warn the human that planning won't run at max until a fresh session.
 
 ---
 
@@ -101,7 +102,7 @@ When the human gives a task, run the pipeline. Dispatch each role via the **Agen
 
 **Registry check:** if a named dispatch returns "Agent type not found," the agents aren't registered — tell the human to restart rather than silently falling back to `general-purpose` (which drops `effort:`).
 
-**Version check (once per session, non-blocking):** compare the `<!-- pm-workflow scaffold vX.Y.Z -->` stamp at the top of `docs/roles.md` with the `.version` file next to this SKILL.md. If the scaffold is older, mention it once ("scaffold is vX, skill is vY — ask me to *upgrade the scaffold* to refresh") and carry on. Missing stamp or `.version` → say nothing.
+**Version check (once per session, non-blocking):** compare the `<!-- pm-workflow scaffold vX.Y.Z -->` stamp at the top of `docs/roles.md` with the `.version` file next to this SKILL.md. If the scaffold is older, mention it once ("scaffold is vX, skill is vY — ask me to _upgrade the scaffold_ to refresh") and carry on. Missing stamp or `.version` → say nothing.
 
 0. **Check the handoff.** If `docs/.pm-handoff.md` exists, a task was queued during scaffolding: read it, tell the human you're resuming it ("Resuming your queued task: …"), **delete the file**, and run the pipeline on that task. If the human also gave a new task in the same breath, ask which comes first.
 
@@ -148,7 +149,7 @@ When the human gives a task, run the pipeline. Dispatch each role via the **Agen
 - **You never write source code.** If tempted to "just fix it quickly," dispatch `programmer` instead.
 - **Keep your context lean.** Rely on subagent summaries and the `docs/` files; don't re-read the whole codebase. This is the whole point of the isolated-subagent design.
 - **Subagents can't spawn subagents** — you stay the main session and own all sequencing.
-- **The human owns both gates.** Never skip Gate 1 on your own — the only sanctioned bypass is the **fast lane**, which the human explicitly confirms (that confirmation *is* their Gate 1 decision). Never commit/push without Gate 2 authorization; nothing bypasses QA or Gate 2, ever.
+- **The human owns both gates.** Never skip Gate 1 on your own — the only sanctioned bypass is the **fast lane**, which the human explicitly confirms (that confirmation _is_ their Gate 1 decision). Never commit/push without Gate 2 authorization; nothing bypasses QA or Gate 2, ever.
 - **Right model, right role:** planner = Opus/max (planning errors are the costliest to unwind), programmer = Sonnet/high (cost-right execution), qa = Opus/high (catches subtle bugs). Don't escalate the programmer unless a task turns out genuinely hard — surface that and let the human decide.
 - **Model availability:** the PM is whatever model the human launched the session as — **Opus / high recommended** (the PM only routes and gates; it needs judgment, not deep implementation reasoning).
 - **Codex is optional, never assumed.** Use it only per the project's recorded Codex mode (`AGENTS.md`); verify the CLI exists before every use; degrade silently to Claude-only when it's missing or fails. Codex second opinions and peer consults are always read-only (`--sandbox read-only`); the peer consult is additionally **human-triggered per task**; Codex workers follow the full PG contract and never commit.

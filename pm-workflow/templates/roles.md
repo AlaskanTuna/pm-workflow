@@ -4,14 +4,14 @@ Defines every participant's role, responsibilities, and boundaries in this proje
 
 ## Role Registry
 
-| Key | Role              | Model / Effort | Drives on skills                                             |
-| --- | ----------------- | -------------- | ------------------------------------------------------------ |
-| PO  | Project Owner     | HUMAN          | —                                                            |
-| PM  | Orchestrator      | Opus / high    | sequences PL→PG→QA, holds the gates                          |
-| PL  | Planner           | Opus / max     | `brainstorming`, `writing-plans`                             |
-| PG  | Programmer        | Sonnet / high  | `test-driven-development`, `executing-plans`, `react-doctor` |
-| QA  | QA Reviewer       | Opus / high    | `code-review`, `systematic-debugging`                        |
-| CX  | Codex (optional)  | OpenAI Codex   | per Codex mode: read-only second opinion at QA, blind peer consult at planning (human-triggered), and/or PG-contract workers |
+| Key | Role             | Model / Effort | Drives on skills                                                                                                             |
+| --- | ---------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| PO  | Project Owner    | HUMAN          | —                                                                                                                            |
+| PM  | Orchestrator     | Opus / high    | sequences PL→PG→QA, holds the gates                                                                                          |
+| PL  | Planner          | Opus / max     | `brainstorming`, `writing-plans`                                                                                             |
+| PG  | Programmer       | Sonnet / high  | `test-driven-development`, `executing-plans`, `react-doctor`                                                                 |
+| QA  | QA Reviewer      | Opus / high    | `code-review`, `systematic-debugging`                                                                                        |
+| CX  | Codex (optional) | OpenAI Codex   | per Codex mode: read-only second opinion at QA, blind peer consult at planning (human-triggered), and/or PG-contract workers |
 
 > Models/efforts are pinned in each `.claude/agents/*.md` frontmatter. The PM is whatever model you launch the session as — **Opus / high recommended** (it only routes and gates). `settings.local.json` carries a session-level `fallbackModel` as an outage hedge.
 

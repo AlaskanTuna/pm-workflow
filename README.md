@@ -68,13 +68,13 @@
 
 Invoke `/pm-workflow` in any project and the current session becomes the **PM (orchestrator)**. It scaffolds the workflow, then sequences three subagents — each pinned to its own model and effort — with **human approval gates** after planning and after QA. The PM routes and gates; it never implements.
 
-| Role | Model / Effort | Drives on |
-| ---- | -------------- | --------- |
-| **PL** Planner | Opus / max | `brainstorming`, `writing-plans` |
-| **PG** Programmer | Sonnet / high | `test-driven-development`, `executing-plans` |
-| **QA** Reviewer | Opus / high | `code-review`, `systematic-debugging` |
-| **PM** Orchestrator | your session model (Opus / high recommended) | routes, holds the gates |
-| **CX** Codex (optional) | OpenAI Codex CLI | read-only second opinion at QA, and/or PG-contract workers |
+| Role                    | Model / Effort                               | Drives on                                                  |
+| ----------------------- | -------------------------------------------- | ---------------------------------------------------------- |
+| **PL** Planner          | Opus / max                                   | `brainstorming`, `writing-plans`                           |
+| **PG** Programmer       | Sonnet / high                                | `test-driven-development`, `executing-plans`               |
+| **QA** Reviewer         | Opus / high                                  | `code-review`, `systematic-debugging`                      |
+| **PM** Orchestrator     | your session model (Opus / high recommended) | routes, holds the gates                                    |
+| **CX** Codex (optional) | OpenAI Codex CLI                             | read-only second opinion at QA, and/or PG-contract workers |
 
 pm-workflow is **Claude Code-first**: the full experience — named subagents pinned to per-role model + effort, orchestrated by the PM session with the two human gates — runs on Claude Code. The scaffolded contract is nonetheless **portable**: the canonical project instructions live in a root `AGENTS.md` (the cross-tool standard, imported by a thin `CLAUDE.md` adapter), so other agentic tools (Codex, Antigravity, Cursor, …) opened at the project root can follow the same roles, docs, and gates in a single context.
 
@@ -88,7 +88,7 @@ Codex delegation is **opt-in per project** (chosen at scaffold, only offered whe
 
 Three steps: scaffold once, restart once, then every task runs the gated pipeline.
 
-### 1. Scaffold — set up the crew
+### 1. Scaffold — Set Up the Crew
 
 In a new project, run `/pm-workflow` and answer the few setup questions (**workflow visibility** first, then the **Gate 2 ship mode**, and the **Codex mode** if the codex CLI is installed — see [Configuration](#configuration)). It creates:
 
@@ -98,9 +98,9 @@ In a new project, run `/pm-workflow` and answer the few setup questions (**workf
 
 The scaffolded `AGENTS.md` embeds the full Karpathy coding guidelines, plus the complete RTK command reference and Graphify instructions if those CLIs are installed on the machine.
 
-### 2. Restart — register the agents
+### 2. Restart — Register the Agents
 
-Open a **brand-new session at the project root** (`/exit`, `cd` into the project, start `claude` again). This is required once so the new subagents register — resuming the same chat will *not* pick them up, and per-role `effort:` pinning only applies to named dispatches. If you gave a task alongside the scaffold request, it's **queued in `docs/.pm-handoff.md`** and the fresh session resumes it automatically.
+Open a **brand-new session at the project root** (`/exit`, `cd` into the project, start `claude` again). This is required once so the new subagents register — resuming the same chat will _not_ pick them up, and per-role `effort:` pinning only applies to named dispatches. If you gave a task alongside the scaffold request, it's **queued in `docs/.pm-handoff.md`** and the fresh session resumes it automatically.
 
 ```
 /exit
@@ -109,7 +109,7 @@ claude
 /pm-workflow
 ```
 
-### 3. Run tasks — the gated pipeline
+### 3. Run Tasks — The Gated Pipeline
 
 `/pm-workflow <task>`. The PM runs **plan → Gate 1 (you approve) → implement → QA → Gate 2 (ship)**. Every session after the first works with no restart. See [The task pipeline](#the-task-pipeline) for the full picture.
 
@@ -140,7 +140,10 @@ claude
 
 pm-workflow is three layers: an **npx installer** that copies the skill into Claude Code's skills directory, the **skill payload** (the PM playbook + file templates), and the **per-project scaffold** those templates produce — which is what the named subagents actually run against.
 
-### The skill architecture
+<details>
+  <summary><strong>The Skill Architecture</strong></summary>
+
+### The Skill Architecture
 
 ```mermaid
 flowchart LR
@@ -185,7 +188,12 @@ flowchart LR
 
 The subagents run in **isolated contexts** and return summaries; the shared state is the `docs/` files. That keeps the PM's context lean — it routes on summaries, never re-reads the whole codebase.
 
-### The scaffold lifecycle
+</details>
+
+<details>
+  <summary><strong>The Scaffold Lifecycle</strong></summary>
+
+### The Scaffold Lifecycle
 
 Scaffolding and operating are **two different sessions** by design: `.claude/agents/*.md` written during the scaffold session aren't in the agent registry yet, and the registry loads from the working directory at session start.
 
@@ -205,7 +213,12 @@ sequenceDiagram
     S2->>H: "Resuming your queued task: …"
 ```
 
-### The task pipeline
+</details>
+
+<details>
+  <summary><strong>The Task Pipeline</strong></summary>
+
+### The Task Pipeline
 
 Every task runs the same gated loop. Diamonds are decisions **you** own.
 
@@ -227,6 +240,8 @@ flowchart TD
     SHIP --> CLOSE["docs/progress.md updated ·<br/>await the next task"]
 ```
 
+</details>
+
 <p align="right"><a href="#readme-top">&uarr;</a></p>
 
 <!-- CONFIGURATION -->
@@ -235,12 +250,12 @@ flowchart TD
 
 Everything is chosen **per project at scaffold time** (the PM asks only what it can't detect) and recorded in the scaffolded `AGENTS.md`:
 
-| Choice | Options | Notes |
-| ------ | ------- | ----- |
-| **Workflow visibility** | `private` (default) · `shared` | Asked first — it changes how everything else is written. |
-| **Gate 2 ship mode** | `direct` · `pr-manual` · `pr-auto` | Plus the target branch (default `main`). |
-| **Codex delegation** | `off` (default) · `second-opinion` · `executor` · `both` | Asked only if the `codex` CLI is installed; skipped silently otherwise. |
-| **Commit policy** | agents may commit · human-only commits | Honored at Gate 2 in every ship mode. |
+| Choice                  | Options                                                  | Notes                                                                   |
+| ----------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Workflow visibility** | `private` (default) · `shared`                           | Asked first — it changes how everything else is written.                |
+| **Gate 2 ship mode**    | `direct` · `pr-manual` · `pr-auto`                       | Plus the target branch (default `main`).                                |
+| **Codex delegation**    | `off` (default) · `second-opinion` · `executor` · `both` | Asked only if the `codex` CLI is installed; skipped silently otherwise. |
+| **Commit policy**       | agents may commit · human-only commits                   | Honored at Gate 2 in every ship mode.                                   |
 
 **Workflow visibility** — **private**: every artifact (`AGENTS.md`, `CLAUDE.md`, `.claude/*`, `docs/*`) is excluded via `.git/info/exclude`, so your personal workflow leaves **zero trace** in a repo you're contributing to; if the repo already has tracked `AGENTS.md`/`CLAUDE.md`, they're left untouched and the workflow instructions go to `.claude/CLAUDE.md` instead. **shared**: artifacts are committed so every contributor runs the same workflow. Even in shared mode, `settings.local.json` and the transient task-handoff file stay local.
 
@@ -255,18 +270,18 @@ Everything is chosen **per project at scaffold time** (the PM asks only what it 
 
 ## Optional Assists
 
-The workflow runs **standalone** — the skills and CLIs below are *optional assists* the subagents use **if present** and degrade gracefully if not. On first scaffold, `/pm-workflow` checks what's installed and, if anything is missing, **pauses and asks** whether to install first or proceed without.
+The workflow runs **standalone** — the skills and CLIs below are _optional assists_ the subagents use **if present** and degrade gracefully if not. On first scaffold, `/pm-workflow` checks what's installed and, if anything is missing, **pauses and asks** whether to install first or proceed without.
 
-| Assist | Used by | Source | If missing |
-| ------ | ------- | ------ | ---------- |
-| `brainstorming`, `writing-plans` | planner | `superpowers` plugin | planner reasons through it inline |
-| `test-driven-development`, `executing-plans` | programmer | `superpowers` plugin | programmer follows TDD by hand |
-| `systematic-debugging` | qa | `superpowers` plugin | qa debugs methodically by hand |
-| `code-review` | qa | built into Claude Code | always available |
-| `react-doctor` | programmer (React projects) | `npx react-doctor@latest install` | skipped on non-React projects, or if absent |
-| `rtk` CLI | all roles (command-output compression) | [rtk-ai/rtk](https://github.com/rtk-ai/rtk) | commands run unfiltered; its `AGENTS.md` block is dropped |
-| `graphify` CLI | all roles (codebase knowledge graph) | `graphifyy` on PyPI | agents navigate the codebase normally; its block is dropped |
-| `codex` CLI | PM (second opinions / workers) | [openai/codex](https://github.com/openai/codex) | Codex question skipped at scaffold; workflow runs Claude-only |
+| Assist                                       | Used by                                | Source                                          | If missing                                                    |
+| -------------------------------------------- | -------------------------------------- | ----------------------------------------------- | ------------------------------------------------------------- |
+| `brainstorming`, `writing-plans`             | planner                                | `superpowers` plugin                            | planner reasons through it inline                             |
+| `test-driven-development`, `executing-plans` | programmer                             | `superpowers` plugin                            | programmer follows TDD by hand                                |
+| `systematic-debugging`                       | qa                                     | `superpowers` plugin                            | qa debugs methodically by hand                                |
+| `code-review`                                | qa                                     | built into Claude Code                          | always available                                              |
+| `react-doctor`                               | programmer (React projects)            | `npx react-doctor@latest install`               | skipped on non-React projects, or if absent                   |
+| `rtk` CLI                                    | all roles (command-output compression) | [rtk-ai/rtk](https://github.com/rtk-ai/rtk)     | commands run unfiltered; its `AGENTS.md` block is dropped     |
+| `graphify` CLI                               | all roles (codebase knowledge graph)   | `graphifyy` on PyPI                             | agents navigate the codebase normally; its block is dropped   |
+| `codex` CLI                                  | PM (second opinions / workers)         | [openai/codex](https://github.com/openai/codex) | Codex question skipped at scaffold; workflow runs Claude-only |
 
 The scaffold can install `rtk` and `graphify` for you with your ok (they're ordinary CLI installs); the `superpowers` plugin is a human action (`/plugin` → `claude-plugins-official` marketplace). Install commands are in [Environment setup](#environment-setup-ubuntu--debian). The installer prints a status report of these assists after every install, so you can set them up before your first scaffold.
 
@@ -370,7 +385,7 @@ npx github:AlaskanTuna/pm-workflow#main
 npx github:AlaskanTuna/pm-workflow --check
 ```
 
-Updating the skill does **not** rewrite projects you already scaffolded. To pull template fixes into a project, ask the PM to *upgrade the scaffold* — it diffs your `docs/roles.md`, `.claude/agents/*`, `settings.local.json`, and the `CLAUDE.md` adapter against the new templates, flags anything you customized, and refreshes only what you approve (your `AGENTS.md`, plan, progress, and test files are never touched). Projects on the older layout (full instructions in `.claude/CLAUDE.md`, no `AGENTS.md`) are offered a one-time migration.
+Updating the skill does **not** rewrite projects you already scaffolded. To pull template fixes into a project, ask the PM to _upgrade the scaffold_ — it diffs your `docs/roles.md`, `.claude/agents/*`, `settings.local.json`, and the `CLAUDE.md` adapter against the new templates, flags anything you customized, and refreshes only what you approve (your `AGENTS.md`, plan, progress, and test files are never touched). Projects on the older layout (full instructions in `.claude/CLAUDE.md`, no `AGENTS.md`) are offered a one-time migration.
 
 ### Automatic updates (opt-in)
 
