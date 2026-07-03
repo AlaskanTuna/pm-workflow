@@ -3,7 +3,7 @@
   "scripts": {
     "format": "prettier --write ."
   },
-  "version": "1.6.6",
+  "version": "1.6.7",
   "description": "A PM-orchestrated, role-based agent workflow skill for Claude Code — scaffolds planner/programmer/qa subagents pinned to per-role model + effort, with human approval gates after planning and after QA.",
   "bin": {
     "pm-workflow": "bin/install.js"
