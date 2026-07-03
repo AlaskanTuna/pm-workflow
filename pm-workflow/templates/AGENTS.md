@@ -328,3 +328,35 @@ rtk init --global       # Add RTK to ~/.claude/CLAUDE.md
 Overall average: **60-90% token reduction** on common development operations.
 
 <!-- /rtk-instructions -->
+
+{{GRAPHIFY_BLOCK — If `graphify` is installed (`which graphify` succeeds) KEEP everything between the two `graphify-instructions` markers below and remove only this instruction line; otherwise DELETE from the opening marker through the closing marker AND this instruction line. This directive line must never survive into the final AGENTS.md. When kept and the project is a codebase with no graph yet, tell the human they can build one with `/graphify .` — do not auto-build unprompted.}}
+
+<!-- graphify-instructions v1 -->
+
+# Graphify - Codebase Knowledge Graph
+
+## Golden Rule
+
+**Only if `graphify` is installed** (`which graphify`) — not all teammates have it. If it's missing, ignore this entire Graphify section and navigate the codebase normally.
+
+Graphify builds a persistent, queryable knowledge graph of this project, so you answer architecture and relationship questions from a compact map instead of grepping and reading many files.
+
+## When to use it
+
+If `graphify-out/graph.json` exists, treat codebase questions ("how does X work", "what calls Y", "where is Z handled", "trace the data flow") as a **`graphify query`** FIRST — before grep/read:
+
+```bash
+graphify query "how does auth reach the database"   # BFS over the graph
+graphify query "..." --budget 1500                   # cap the answer at N tokens
+graphify path "AuthModule" "Database"                # shortest path between two concepts
+graphify explain "SomeNode"                          # plain-language explanation of a node
+```
+
+## Keeping the graph fresh
+
+- No graph yet, and this is a real codebase? Build it once: `/graphify .` (code-only = free, no API key).
+- After changing code, refresh incrementally: `graphify update .` (no LLM). A SessionStart hook may already do this automatically.
+
+Graphify (codebase comprehension) and RTK (command-output compression) are complementary — use both when present.
+
+<!-- /graphify-instructions -->
