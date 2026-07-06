@@ -352,10 +352,48 @@ graphify path "AuthModule" "Database"                # shortest path between two
 graphify explain "SomeNode"                          # plain-language explanation of a node
 ```
 
+## Scope before the first build (avoid a token blowout)
+
+Before the first `/graphify .`, create a `.graphifyignore` at the repo root (gitignore syntax — graphify merges it with `.gitignore`, and `!` can re-include). Write this sensible default, then **ask the human (AskUserQuestion) to confirm or adjust it before building** — large or asset-heavy repos can otherwise burn a lot of tokens on the first extraction:
+
+```gitignore
+# Keep the knowledge graph focused. Merged with .gitignore (! re-includes).
+# Use docs/* (not docs/) so the ! lines below can re-include specific files.
+docs/*
+!docs/prd.md
+!docs/trd.md
+.claude/
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+.cursorrules
+.windsurfrules
+RTK.md
+*.pdf
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.svg
+assets/
+public/assets/
+```
+
 ## Keeping the graph fresh
 
-- No graph yet, and this is a real codebase? Build it once: `/graphify .` (code-only = free, no API key).
+- No graph yet, and this is a real codebase? **Scope it first** (write/confirm `.graphifyignore`, above), then build once: `/graphify .` (code-only = free, no API key).
 - After changing code, refresh incrementally: `graphify update .` (no LLM). A SessionStart hook may already do this automatically.
+
+## Shared graph? Add a commit hook
+
+If `graphify-out/` is committed (shared with collaborators, not gitignored) and the repo uses Husky (`.husky/` exists), add — or append to — a committed `.husky/post-commit` so every commit refreshes the graph in lockstep with the code (fewer `graph.json` merge conflicts):
+
+```sh
+# Keep the committed knowledge graph in sync with committed code
+[ -f graphify-out/graph.json ] && command -v graphify >/dev/null 2>&1 && graphify update . >/dev/null 2>&1 || true
+```
 
 Graphify (codebase comprehension) and RTK (command-output compression) are complementary — use both when present.
 
