@@ -4,16 +4,16 @@ Defines every participant's role, responsibilities, and boundaries in this proje
 
 ## Role Registry
 
-| Key | Role             | Model / Effort | Drives on skills                                                                                                             |
-| --- | ---------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| PO  | Project Owner    | HUMAN          | —                                                                                                                            |
-| PM  | Orchestrator     | Opus / high    | sequences PL→PG→QA, holds the gates                                                                                          |
-| PL  | Planner          | Opus / max     | `brainstorming`, `writing-plans`                                                                                             |
-| PG  | Programmer       | Sonnet / high  | `test-driven-development`, `executing-plans`, `react-doctor`                                                                 |
-| QA  | QA Reviewer      | Opus / high    | `code-review`, `systematic-debugging`                                                                                        |
-| CX  | Codex (optional) | OpenAI Codex   | per Codex mode: read-only second opinion at QA, blind peer consult at planning (human-triggered), and/or PG-contract workers |
+| Key | Role             | Model / Effort     | Drives on skills                                                                                                             |
+| --- | ---------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| PO  | Project Owner    | HUMAN              | —                                                                                                                            |
+| PM  | Orchestrator     | Opus / high        | sequences PL→PG→QA, holds the gates                                                                                          |
+| PL  | Planner          | per profile / max  | `brainstorming`, `writing-plans`                                                                                             |
+| PG  | Programmer       | Sonnet / high      | `test-driven-development`, `executing-plans`, `react-doctor`                                                                 |
+| QA  | QA Reviewer      | per profile / high | `code-review`, `systematic-debugging`                                                                                        |
+| CX  | Codex (optional) | OpenAI Codex       | per Codex mode: read-only second opinion at QA, blind peer consult at planning (human-triggered), and/or PG-contract workers |
 
-> Models/efforts are pinned in each `.claude/agents/*.md` frontmatter. The PM is whatever model you launch the session as — **Opus / high recommended** (it only routes and gates). `settings.local.json` carries a session-level `fallbackModel` as an outage hedge.
+> Models/efforts are filled into each `.claude/agents/*.md` frontmatter from the project's **model profile** (`max` / `balanced` / `economy`, recorded in `AGENTS.md`) — the table above shows the `max` profile; `balanced`/`economy` step the Opus bookends down to Sonnet while **effort stays pinned**. The PM is whatever model you launch the session as — **Opus / high recommended** (it only routes and gates). `settings.local.json` carries a session-level `fallbackModel` as an outage hedge.
 
 ## PO — Project Owner (you, the human)
 
@@ -25,18 +25,18 @@ Defines every participant's role, responsibilities, and boundaries in this proje
 
 ## PM — Orchestrator
 
-Runs the pipeline from one prompt; never implements. Dispatches PL, PG, QA as subagents, relays each one's summary, and enforces the two gates. Keeps its own context lean — relies on subagent summaries and the `docs/` files, not on re-reading everything. **Cannot spawn nested subagents**, so it stays the main session.
+Runs the pipeline from one prompt; never implements. Dispatches PL, PG, QA as subagents, relays each one's summary, and enforces the two gates. At Gate 2 it appends any lasting decision to `docs/decisions.md` (one line). Keeps its own context lean — relies on subagent summaries and the `docs/` files, not on re-reading everything. **Cannot spawn nested subagents**, so it stays the main session.
 
 ## PL — Planner
 
-| Item     | Detail                                                                    |
-| -------- | ------------------------------------------------------------------------- |
-| Trigger  | PM starts a new feature/phase                                             |
-| Reads    | `AGENTS.md`, `docs/prd.md`, `docs/trd.md`, `docs/roadmap.md` (if present) |
-| Produces | Checkboxed task breakdown in `docs/plan.md` + open-questions list         |
-| Updates  | `docs/plan.md` only                                                       |
+| Item     | Detail                                                                                         |
+| -------- | ---------------------------------------------------------------------------------------------- |
+| Trigger  | PM starts a new feature/phase                                                                  |
+| Reads    | `AGENTS.md`, `docs/decisions.md`, `docs/prd.md`, `docs/trd.md`, `docs/roadmap.md` (if present) |
+| Produces | Checkboxed task breakdown in `docs/plan.md` + open-questions list                              |
+| Updates  | `docs/plan.md` only                                                                            |
 
-**Rules:** Does not implement. Brainstorms before planning. Flags ambiguity for the human at Gate 1 instead of guessing.
+**Rules:** Does not implement. Brainstorms before planning. Reads `docs/decisions.md` first and never silently reverses a recorded decision — flags it at Gate 1. Flags ambiguity for the human at Gate 1 instead of guessing.
 
 ## PG — Programmer
 
@@ -86,7 +86,7 @@ PO gives task
 
 **Fast lane** (PM-triaged, human-confirmed): a trivially small task (typo, one-liner, doc/config tweak) may skip PL and Gate 1 — the PM supplies explicit acceptance criteria in the dispatch and sends the task straight to PG. **QA and Gate 2 always run.** When in doubt, full pipeline.
 
-**Loop cap:** after 2 consecutive QA Rejects on the same task, the PM stops looping and asks the human: keep looping, escalate PG's fix to Opus (one-off), or take over manually.
+**Loop cap:** after 2 consecutive QA Rejects on the same task, the PM stops looping and asks the human: keep looping, escalate PG's fix one tier (one-off — to Opus where reachable, else Sonnet), or take over manually.
 
 **Parallel waves:** tasks whose `Depends on:` are satisfied and whose `Files:` scopes are **disjoint** may run as a wave of up to 3 PGs (or Codex workers, per the Codex mode) — the wave grouping is part of what the human approves at Gate 1. In a wave, PGs stay inside their file scope (stop-and-report otherwise), run targeted tests only, and don't write `docs/` — the PM ticks the plan and logs progress. Waves never overlap.
 
