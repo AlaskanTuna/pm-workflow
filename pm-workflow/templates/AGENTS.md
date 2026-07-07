@@ -352,6 +352,8 @@ graphify path "AuthModule" "Database"                # shortest path between two
 graphify explain "SomeNode"                          # plain-language explanation of a node
 ```
 
+**Applies to every agent** — the PM _and_ PG/programmer subagents (Codex workers read this AGENTS.md too): run `graphify query` before grepping for architecture/relationship questions, then drop to grep/sed/Read for exact `file:line` evidence — the graph gives you the file, not the line. Query results interleave code, UI (screenshot), and doc nodes; ask a narrow question and use `--budget` to keep the answer focused.
+
 ## Scope before the first build (avoid a token blowout)
 
 Before the first `/graphify .`, create a `.graphifyignore` at the repo root (gitignore syntax — graphify merges it with `.gitignore`, and `!` can re-include). Write this sensible default, then **ask the human (AskUserQuestion) to confirm or adjust it before building** — large or asset-heavy repos can otherwise burn a lot of tokens on the first extraction:
@@ -388,7 +390,17 @@ public/assets/
 
 ## Shared graph? Add a commit hook
 
-If `graphify-out/` is committed (shared with collaborators, not gitignored) and the repo uses Husky (`.husky/` exists), add — or append to — a committed `.husky/post-commit` so every commit refreshes the graph in lockstep with the code (fewer `graph.json` merge conflicts):
+Sharing the graph with collaborators? Two things.
+
+**Keep the committed surface lean.** Commit only `graph.json` (queryable) and `GRAPH_REPORT.md` (human-readable); gitignore the regenerable, churny artifacts — `graph.html` (megabytes, rebuilt every commit), `cache/`, and machine-local state — which teammates rebuild locally via the hook below. Add to `.gitignore`:
+
+```gitignore
+graphify-out/*
+!graphify-out/graph.json
+!graphify-out/GRAPH_REPORT.md
+```
+
+**Refresh on commit.** If `graphify-out/` is committed and the repo uses Husky (`.husky/` exists), add — or append to — a committed `.husky/post-commit` so every commit refreshes the graph in lockstep with the code (fewer `graph.json` merge conflicts):
 
 ```sh
 # Keep the committed knowledge graph in sync with committed code
