@@ -9,6 +9,9 @@
  *  - Fail-silent: any error is swallowed so it can NEVER block session start.
  *  - Real-dir install (consumer): if a newer version is published, reinstalls via npx.
  *  - Symlink install (maintainer/dev): notify only — never touches your working repo.
+ *  - Plugin install (marketplace): not handled here. Claude Code updates plugins itself
+ *    via `/plugin marketplace update`, so this checker governs ONLY the npx / skills-dir
+ *    install under ~/.claude/skills/pm-workflow and no-ops when that directory is absent.
  */
 
 const fs = require("fs");

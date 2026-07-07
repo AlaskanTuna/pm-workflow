@@ -351,6 +351,17 @@ The `superpowers` plugin is installed from inside Claude Code: `/plugin` → mar
 
 ### Installation
 
+Two channels — pick one. Both give you the same skill and scaffold; the plugin channel adds four namespaced commands as explicit entry points and updates itself through Claude Code.
+
+**Plugin (recommended)** — adds `/pm-workflow:setup`, `/pm-workflow:task`, `/pm-workflow:upgrade`, and `/pm-workflow:help`:
+
+```text
+/plugin marketplace add AlaskanTuna/pm-workflow
+/plugin install pm-workflow@pm-workflow
+```
+
+**npx (skill only)** — installs just the `/pm-workflow` skill into a skills directory:
+
 ```bash
 # Global install — available in every project (default)
 npx github:AlaskanTuna/pm-workflow
@@ -365,7 +376,7 @@ npx github:AlaskanTuna/pm-workflow --path /path/to/.claude/skills
 npx github:AlaskanTuna/pm-workflow --with-auto-update
 ```
 
-This copies the skill into `~/.claude/skills/pm-workflow` (global) or `./.claude/skills/pm-workflow` (project). Then follow [How It Works](#how-it-works): scaffold, restart, run tasks.
+The npx channel copies the skill into `~/.claude/skills/pm-workflow` (global) or `./.claude/skills/pm-workflow` (project) and gives you the description-triggered `/pm-workflow` skill (no namespaced commands — those ship with the plugin). Then follow [How It Works](#how-it-works): scaffold, restart, run tasks.
 
 <p align="right"><a href="#readme-top">&uarr;</a></p>
 
@@ -373,7 +384,13 @@ This copies the skill into `~/.claude/skills/pm-workflow` (global) or `./.claude
 
 ## Updating
 
-Re-run the installer — it overwrites the installed copy with the latest:
+**Plugin channel** — Claude Code tracks the marketplace; pull the latest with:
+
+```text
+/plugin marketplace update pm-workflow
+```
+
+**npx channel** — re-run the installer; it overwrites the installed copy with the latest:
 
 ```bash
 npx github:AlaskanTuna/pm-workflow#main
@@ -397,6 +414,14 @@ Install with `--with-auto-update` (or answer **y** at the prompt) to register a 
 
 ## Uninstall
 
+Plugin channel:
+
+```text
+/plugin uninstall pm-workflow@pm-workflow
+```
+
+npx channel:
+
 ```bash
 rm -rf ~/.claude/skills/pm-workflow     # global
 rm -rf ./.claude/skills/pm-workflow     # project
@@ -409,17 +434,22 @@ rm -rf ./.claude/skills/pm-workflow     # project
 ## Project Structure
 
 ```text
-pm-workflow/
-├── pm-workflow/                  # the skill payload (copied verbatim on install)
+pm-workflow/                      # repo root — also the plugin & marketplace root
+├── .claude-plugin/
+│   ├── plugin.json               # plugin manifest (wraps the skill payload below)
+│   └── marketplace.json          # single-plugin marketplace hosted in this repo
+├── commands/                     # plugin-only namespaced commands (not copied by npx)
+│   └── setup.md · task.md · upgrade.md · help.md    # → /pm-workflow:setup … :help
+├── pm-workflow/                  # the skill payload (copied verbatim by npx; loaded in place by the plugin)
 │   ├── SKILL.md                  # the PM playbook — Phase A scaffold · A′ upgrade · B operate
 │   ├── templates/
 │   │   ├── AGENTS.md             # canonical project instructions (+ Karpathy / RTK / Graphify blocks)
 │   │   ├── CLAUDE.md             # thin adapter that @-imports AGENTS.md
 │   │   ├── roles.md              # role contracts (version-stamped at scaffold)
-│   │   ├── plan.md · progress.md · test.md
+│   │   ├── plan.md · progress.md · test.md · decisions.md
 │   │   ├── settings.local.json
 │   │   └── agents/               # planner.md · programmer.md · qa.md
-│   └── update-check.js           # daily auto-update check (SessionStart hook target)
+│   └── update-check.js           # daily auto-update check (npx channel; SessionStart hook target)
 ├── bin/
 │   └── install.js                # the npx installer (+ auto-update hook registration)
 ├── .github/workflows/

@@ -1,0 +1,15 @@
+{
+  "name": "pm-workflow",
+  "description": "Home of the pm-workflow plugin — a PM-orchestrated planner→programmer→qa agent workflow for Claude Code.",
+  "owner": {
+    "name": "Adam (AlaskanTuna)",
+    "url": "https://github.com/AlaskanTuna"
+  },
+  "plugins": [
+    {
+      "name": "pm-workflow",
+      "source": "./",
+      "description": "A PM-orchestrated, role-based agent workflow for Claude Code — scaffolds planner/programmer/qa subagents pinned to per-role model + effort, with human approval gates after planning and after QA. Adds /pm-workflow:setup, :task, :upgrade, :help."
+    }
+  ]
+}
