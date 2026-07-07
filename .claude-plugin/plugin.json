@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "pm-workflow",
-  "version": "1.6.9",
+  "version": "1.7.0",
   "description": "A PM-orchestrated, role-based agent workflow for Claude Code — scaffolds planner/programmer/qa subagents pinned to per-role model + effort, with human approval gates after planning and after QA.",
   "author": {
     "name": "Adam (AlaskanTuna)",
