@@ -74,11 +74,11 @@ Invoke `/pm-workflow` in any project and the current session becomes the **PM (o
 | **PG** Programmer       | Sonnet / high                                | `test-driven-development`, `executing-plans`               |
 | **QA** Reviewer         | Opus / high                                  | `code-review`, `systematic-debugging`                      |
 | **PM** Orchestrator     | your session model (Opus / high recommended) | routes, holds the gates                                    |
-| **CX** Codex (optional) | OpenAI Codex CLI                             | read-only second opinion at QA, and/or PG-contract workers |
+| **CX** Codex (optional) | OpenAI Codex CLI                             | per enabled feature: `second-opinion` · `peer-consult` · `executor` |
 
-pm-workflow is **Claude Code-first**: the full experience — named subagents pinned to per-role model + effort, orchestrated by the PM session with the two human gates — runs on Claude Code. The scaffolded contract is nonetheless **portable**: the canonical project instructions live in a root `AGENTS.md` (the cross-tool standard, imported by a thin `CLAUDE.md` adapter), so other agentic tools (Codex, Antigravity, Cursor, …) opened at the project root can follow the same roles, docs, and gates in a single context.
+pm-workflow is **Claude Code-first, Codex-second**: on Claude Code the full experience runs as named subagents pinned to per-role model + effort, orchestrated by the PM session with the two human gates; on **Codex** the same roles run as native `.codex/agents/` subagents with the same pinning, gates, and docs. The scaffolded contract is also **portable**: canonical instructions live in a root `AGENTS.md` (the cross-tool standard, imported by a thin `CLAUDE.md` adapter), so any other agentic tool (Antigravity, Cursor, …) opened at the project root can follow the same roles, docs, and gates in a single context.
 
-Codex delegation is **opt-in per project** (chosen at scaffold, only offered when the `codex` CLI is installed): a read-only second-opinion review alongside QA, a human-triggered blind peer consult at planning, Codex workers implementing tasks, or off.
+Codex delegation is **opt-in per project and per feature** (multi-select at scaffold, only offered when the `codex` CLI is installed; applies only when the main agent is Claude): `second-opinion` — a read-only review alongside QA; `peer-consult` — a human-triggered blind consult at planning; `executor` — Codex workers implementing tasks. Each gates independently.
 
 <p align="right"><a href="#readme-top">&uarr;</a></p>
 
@@ -90,10 +90,11 @@ Three steps: scaffold once, restart once, then every task runs the gated pipelin
 
 ### 1. Scaffold — Set Up the Crew
 
-In a new project, run `/pm-workflow` and answer the few setup questions (**workflow visibility** first, then the **Gate 2 ship mode**, and the **Codex mode** if the codex CLI is installed — see [Configuration](#configuration)). It creates:
+In a new project, run `/pm-workflow` and answer the few setup questions (**workflow visibility** first, then the **Gate 2 ship mode**, the **model profile**, and the **Codex delegation features** (multi-select) if the codex CLI is installed — see [Configuration](#configuration)). Dependency detection and resolution run **before** anything is written, so what gets scaffolded reflects your real tool state. It creates:
 
 - a root `AGENTS.md` (canonical instructions) + `CLAUDE.md` (thin adapter that `@`-imports it),
 - `.claude/` — `settings.local.json` and `agents/{planner,programmer,qa}.md`,
+- `.codex/agents/` — `{planner,programmer,qa}.toml`, native Codex mirrors of the same roles,
 - `docs/` — roles, plan, progress, test.
 
 The scaffolded `AGENTS.md` embeds the full Karpathy coding guidelines, plus the complete RTK command reference and Graphify instructions if those CLIs are installed on the machine.
@@ -119,13 +120,14 @@ claude
 
 ## Features
 
-- 🎭 **Role-pinned subagents** — planner (Opus/max), programmer (Sonnet/high), qa (Opus/high). Planning errors are the costliest to unwind; execution is cost-right; review catches subtle bugs.
+- 🎭 **Role-pinned subagents** — planner, programmer, and qa each pinned to their own model + effort via the **model profile matrix** (`max`/`balanced`/`economy`), covering both Claude and Codex models per role plus the parallel-wave cap. Planning errors are the costliest to unwind; execution is cost-right; review catches subtle bugs.
+- 🧭 **Harness-aware** — the skill identifies its own main agent first: Claude Code dispatches named `.claude/agents/` subagents; a Codex main dispatches its native `.codex/agents/` TOML subagents (never pricier Claude ones); anything else runs the same roles, docs, and gates sequentially.
 - 🚦 **Two human gates** — you approve the plan (Gate 1) and authorize the ship (Gate 2). Nothing bypasses QA or Gate 2, ever.
-- ⚡ **Fast lane** — for trivially small tasks (typo, one-liner, doc/config tweak) the PM offers to skip the planner and Gate 1; you confirm, it supplies acceptance criteria itself, and QA + Gate 2 still always run.
-- 🌊 **Parallel waves** — the planner annotates each task with its file scope and dependencies; independent tasks with disjoint scopes run as Gate-1-approved waves of up to 3 programmers (or Codex workers, in `executor` mode) concurrently. The full test suite runs once, at QA.
+- ⚡ **Fast lane (auto-triaged)** — the PM triages every task: trivially small (typo, one-liner, doc/config tweak) → fast lane **automatically**, announced in one line; ambiguous → it asks; substantial → full pipeline. The fast lane skips planning and Gate 1, but QA + Gate 2 still always run.
+- 🌊 **Parallel waves** — the planner annotates each task with its file scope and dependencies; independent tasks with disjoint scopes run as Gate-1-approved waves of up to the profile's wave cap of programmers (or Codex workers, in `executor` mode) concurrently. The full test suite runs once, at QA.
 - 🔁 **Loop cap** — after 2 consecutive QA rejects on a task, the PM stops and asks you: keep looping, escalate the fix to Opus, or take over.
 - 🔎 **QA efficiency** — reject-loop re-reviews check the fixes + delta diff only, not the whole change again.
-- 🤝 **Codex delegation (opt-in)** — a read-only second-opinion review alongside QA with both verdicts at Gate 2 (disagreements highlighted), a **blind peer consult** at planning for high-stakes tasks (planner and Codex get the same brief independently — neither sees the other's answer — and the planner synthesizes both, disagreement map shown at Gate 1), or Codex workers implementing tasks under the full PG contract.
+- 🤝 **Codex delegation (opt-in, per-feature, hardened)** — when the main agent is Claude, pick any combination of three independent features: `second-opinion` (a read-only review alongside QA with both verdicts at Gate 2, disagreements highlighted), `peer-consult` (a **blind** planning consult for high-stakes tasks — planner and Codex get the same brief independently, neither sees the other's answer, and the planner synthesizes both with the disagreement map shown at Gate 1), and `executor` (Codex workers implementing tasks under the full PG contract). Every `codex exec` call follows a hardened invocation contract — pinned model + reasoning effort, closed stdin (the documented non-TTY freeze bug), hard timeout, and JSON-event liveness monitoring — so a hung Codex never stalls the pipeline.
 - 🕶️ **Private visibility** — every artifact is excluded via `.git/info/exclude`, so your personal workflow leaves **zero trace** in a repo you're contributing to.
 - 🚢 **Three ship modes** — `direct`, `pr-manual`, `pr-auto`; PR modes open a PR only for substantial changes, and merged branches are cleaned up (`--delete-branch`).
 - 🧳 **Portable contract** — canonical `AGENTS.md` + thin `CLAUDE.md` adapter; other agentic tools follow the same roles, docs, and gates.
@@ -154,13 +156,13 @@ flowchart LR
 
     subgraph SKILL["Installed skill — ~/.claude/skills/pm-workflow"]
         SK["SKILL.md — the PM playbook<br/>Phase A scaffold · Phase A&prime; upgrade · Phase B operate"]
-        TPL["templates/<br/>AGENTS.md · CLAUDE.md · roles · plan ·<br/>progress · test · settings · agents"]
+        TPL["templates/<br/>AGENTS.md · CLAUDE.md · roles · plan ·<br/>progress · test · settings · agents · codex-agents"]
     end
 
     subgraph PROJECT["Scaffolded project"]
         AG["AGENTS.md<br/>canonical, tool-agnostic instructions"]
         CL["CLAUDE.md<br/>thin adapter — @AGENTS.md"]
-        SUB[".claude/agents/<br/>planner · programmer · qa"]
+        SUB[".claude/agents/ + .codex/agents/<br/>planner · programmer · qa"]
         DOCS["docs/<br/>roles · plan · progress · test"]
         EXCL[".git/info/exclude<br/>private mode: zero repo trace"]
     end
@@ -204,8 +206,8 @@ sequenceDiagram
     participant P as Project files
     participant S2 as Fresh session — PM
     H->>S1: /pm-workflow [+ optional task]
-    S1->>H: setup questions — visibility · ship mode · codex mode
-    S1->>P: AGENTS.md + CLAUDE.md + .claude/ + docs/
+    S1->>H: setup questions — visibility · ship mode · model profile · codex features
+    S1->>P: AGENTS.md + CLAUDE.md + .claude/ + .codex/ + docs/
     S1->>P: queue task in docs/.pm-handoff.md
     S1-->>H: restart required — /exit → cd project → claude
     H->>S2: new session at the project root
@@ -224,12 +226,12 @@ Every task runs the same gated loop. Diamonds are decisions **you** own.
 
 ```mermaid
 flowchart TD
-    TASK["/pm-workflow &lt;task&gt;"] --> TRIAGE{"PM triage —<br/>trivially small?"}
-    TRIAGE -->|no| PLAN["PL plans the work<br/>→ docs/plan.md<br/>(optional blind Codex peer consult)"]
+    TASK["/pm-workflow &lt;task&gt;"] --> TRIAGE{"PM triage —<br/>trivial · ambiguous · substantial"}
+    TRIAGE -->|substantial| PLAN["PL plans the work<br/>→ docs/plan.md<br/>(optional blind Codex peer consult)"]
     PLAN --> GATE1{"GATE 1<br/>you approve the plan"}
     GATE1 -->|revise| PLAN
-    GATE1 -->|approve| IMPL["PG implements<br/>sequential, or waves of ≤3 on<br/>disjoint file scopes<br/>(or Codex workers in executor mode)"]
-    TRIAGE -->|"yes — fast lane, you confirm<br/>(PM writes the acceptance criteria)"| IMPL
+    GATE1 -->|approve| IMPL["PG implements<br/>sequential, or waves up to the<br/>profile's cap on disjoint file scopes<br/>(or Codex workers in executor mode)"]
+    TRIAGE -->|"trivial — auto fast lane, announced<br/>· ambiguous — you choose<br/>(PM writes the acceptance criteria)"| IMPL
     IMPL --> REVIEW["QA reviews the diff<br/>→ verdict in docs/test.md"]
     REVIEW -.->|"second-opinion mode:<br/>read-only Codex review<br/>runs alongside"| VERDICT
     REVIEW --> VERDICT{"QA verdict"}
@@ -254,7 +256,8 @@ Everything is chosen **per project at scaffold time** (the PM asks only what it 
 | ----------------------- | -------------------------------------------------------- | ----------------------------------------------------------------------- |
 | **Workflow visibility** | `private` (default) · `shared`                           | Asked first — it changes how everything else is written.                |
 | **Gate 2 ship mode**    | `direct` · `pr-manual` · `pr-auto`                       | Plus the target branch (default `main`).                                |
-| **Codex delegation**    | `off` (default) · `second-opinion` · `executor` · `both` | Asked only if the `codex` CLI is installed; skipped silently otherwise. |
+| **Model profile**       | `max` · `balanced` · `economy`                           | One knob: Claude + Codex models per role, pinned efforts, wave cap.     |
+| **Codex delegation**    | `off` (default) · any combo of `second-opinion` · `peer-consult` · `executor` | Multi-select; each feature gates independently. Asked only if the `codex` CLI is installed; otherwise noted as off — enable later via `/pm-workflow:upgrade`. |
 | **Commit policy**       | agents may commit · human-only commits                   | Honored at Gate 2 in every ship mode.                                   |
 
 **Workflow visibility** — **private**: every artifact (`AGENTS.md`, `CLAUDE.md`, `.claude/*`, `docs/*`) is excluded via `.git/info/exclude`, so your personal workflow leaves **zero trace** in a repo you're contributing to; if the repo already has tracked `AGENTS.md`/`CLAUDE.md`, they're left untouched and the workflow instructions go to `.claude/CLAUDE.md` instead. **shared**: artifacts are committed so every contributor runs the same workflow. Even in shared mode, `settings.local.json` and the transient task-handoff file stay local.
@@ -281,7 +284,7 @@ The workflow runs **standalone** — the skills and CLIs below are _optional ass
 | `react-doctor`                               | programmer (React projects)            | `npx react-doctor@latest install`               | skipped on non-React projects, or if absent                   |
 | `rtk` CLI                                    | all roles (command-output compression) | [rtk-ai/rtk](https://github.com/rtk-ai/rtk)     | commands run unfiltered; its `AGENTS.md` block is dropped     |
 | `graphify` CLI                               | all roles (codebase knowledge graph)   | `graphifyy` on PyPI                             | agents navigate the codebase normally; its block is dropped   |
-| `codex` CLI                                  | PM (second opinions / workers)         | [openai/codex](https://github.com/openai/codex) | Codex question skipped at scaffold; workflow runs Claude-only |
+| `codex` CLI                                  | PM (second opinions / workers)         | [openai/codex](https://github.com/openai/codex) | Noted as off at scaffold; enable later via `/pm-workflow:upgrade`; workflow runs Claude-only |
 
 The scaffold can install `rtk` and `graphify` for you with your ok (they're ordinary CLI installs); the `superpowers` plugin is a human action (`/plugin` → `claude-plugins-official` marketplace). Install commands are in [Environment setup](#environment-setup-ubuntu--debian). The installer prints a status report of these assists after every install, so you can set them up before your first scaffold.
 
