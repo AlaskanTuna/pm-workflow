@@ -9,7 +9,7 @@
     {
       "name": "pm-workflow",
       "source": "./",
-      "description": "A PM-orchestrated, role-based agent workflow for Claude Code — scaffolds planner/programmer/qa subagents pinned to per-role model + effort, with human approval gates after planning and after QA. Adds /pm-workflow:setup, :task, :upgrade, :help."
+      "description": "A PM-orchestrated, role-based agent workflow for Claude Code and Codex — scaffolds planner/programmer/qa subagents (Claude .claude/agents + native Codex .codex/agents) pinned to per-role model + effort, with human approval gates after planning and after QA. Adds /pm-workflow:setup, :task, :upgrade, :help."
     }
   ]
 }
