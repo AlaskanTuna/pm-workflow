@@ -95,6 +95,7 @@ In a new project, run `/pm-workflow` and answer the few setup questions (**workf
 - a root `AGENTS.md` (canonical instructions) + `CLAUDE.md` (thin adapter that `@`-imports it),
 - `.claude/` — `settings.local.json` and `agents/{planner,programmer,qa}.md`,
 - `.codex/agents/` — `{planner,programmer,qa}.toml`, native Codex mirrors of the same roles,
+- `.agents/skills/` — the tool-agnostic skills home (empty anchor; Impeccable's Codex provider installs here natively),
 - `docs/` — roles, plan, progress, test.
 
 The scaffolded `AGENTS.md` embeds the full Karpathy coding guidelines, plus the complete RTK command reference and Graphify instructions if those CLIs are installed on the machine.
@@ -128,6 +129,9 @@ claude
 - 🔁 **Loop cap** — after 2 consecutive QA rejects on a task, the PM stops and asks you: keep looping, escalate the fix to Opus, or take over.
 - 🔎 **QA efficiency** — reject-loop re-reviews check the fixes + delta diff only, not the whole change again.
 - 🤝 **Codex delegation (opt-in, per-feature, hardened)** — when the main agent is Claude, pick any combination of three independent features: `second-opinion` (a read-only review alongside QA with both verdicts at Gate 2, disagreements highlighted), `peer-consult` (a **blind** planning consult for high-stakes tasks — planner and Codex get the same brief independently, neither sees the other's answer, and the planner synthesizes both with the disagreement map shown at Gate 1), and `executor` (Codex workers implementing tasks under the full PG contract). Every `codex exec` call follows a hardened invocation contract — pinned model + reasoning effort, closed stdin (the documented non-TTY freeze bug), hard timeout, and JSON-event liveness monitoring — so a hung Codex never stalls the pipeline.
+- 🎨 **Design quality (frontend projects, recommended)** — [Impeccable](https://github.com/pbakaus/impeccable) integration: offered automatically when a frontend is detected. Its PostToolUse hook gives the programmer live anti-generic-design feedback **mid-edit, inside the subagent's own context** (empirically verified); QA runs the deterministic `impeccable detect` audit on UI diffs; the planner writes design acceptance criteria from `docs/DESIGN.md`. One optional ~5-min design interview on your first frontend task — zero extra setup questions.
+- 🧠 **Cross-session memory (optional)** — [claude-mem](https://github.com/thedotmack/claude-mem) integration: when installed (user-global), every session — and every PM — starts knowing what past sessions did, subagent work included (empirically verified). The scaffold pre-authorizes its read-only search tools; the `docs/` files stay canonical and `docs/decisions.md` stays the decision ledger.
+- 🔀 **Parallel pipelines, safely** — one checkout = one PM, enforced by a `docs/.pm-lock` collision guard (a second PM in the same folder gets a clear stop instead of silent corruption). Genuinely disjoint features run one PM per **git worktree** — own docs, own gates, own branch, PR-based convergence.
 - 🕶️ **Private visibility** — every artifact is excluded via `.git/info/exclude`, so your personal workflow leaves **zero trace** in a repo you're contributing to.
 - 🚢 **Three ship modes** — `direct`, `pr-manual`, `pr-auto`; PR modes open a PR only for substantial changes, and merged branches are cleaned up (`--delete-branch`).
 - 🧳 **Portable contract** — canonical `AGENTS.md` + thin `CLAUDE.md` adapter; other agentic tools follow the same roles, docs, and gates.
@@ -206,6 +210,7 @@ sequenceDiagram
     participant P as Project files
     participant S2 as Fresh session — PM
     H->>S1: /pm-workflow [+ optional task]
+    S1->>H: dependency pause — superpowers · rtk · impeccable · graphify · claude-mem
     S1->>H: setup questions — visibility · ship mode · model profile · codex features
     S1->>P: AGENTS.md + CLAUDE.md + .claude/ + .codex/ + docs/
     S1->>P: queue task in docs/.pm-handoff.md
@@ -226,7 +231,9 @@ Every task runs the same gated loop. Diamonds are decisions **you** own.
 
 ```mermaid
 flowchart TD
-    TASK["/pm-workflow &lt;task&gt;"] --> TRIAGE{"PM triage —<br/>trivial · ambiguous · substantial"}
+    TASK["/pm-workflow &lt;task&gt;"] --> LOCK{"docs/.pm-lock<br/>fresh?"}
+    LOCK -->|"yes — another PM active:<br/>stop · offer a parallel worktree"| HALT["one checkout = one PM"]
+    LOCK -->|no — lock written| TRIAGE{"PM triage —<br/>trivial · ambiguous · substantial"}
     TRIAGE -->|substantial| PLAN["PL plans the work<br/>→ docs/plan.md<br/>(optional blind Codex peer consult)"]
     PLAN --> GATE1{"GATE 1<br/>you approve the plan"}
     GATE1 -->|revise| PLAN
@@ -283,8 +290,10 @@ The workflow runs **standalone** — the skills and CLIs below are _optional ass
 | `code-review`                                | qa                                     | built into Claude Code                          | always available                                              |
 | `react-doctor`                               | programmer (React projects)            | `npx react-doctor@latest install`               | skipped on non-React projects, or if absent                   |
 | `rtk` CLI                                    | all roles (command-output compression) | [rtk-ai/rtk](https://github.com/rtk-ai/rtk)     | commands run unfiltered; its `AGENTS.md` block is dropped     |
-| `graphify` CLI                               | all roles (codebase knowledge graph)   | `graphifyy` on PyPI                             | agents navigate the codebase normally; its block is dropped   |
+| `graphify` CLI                               | all roles (codebase knowledge graph)   | `graphifyy` on PyPI                             | offered at the setup pause (optional — code-only graph build is free); without it agents navigate normally and its block is dropped |
 | `codex` CLI                                  | PM (second opinions / workers)         | [openai/codex](https://github.com/openai/codex) | Noted as off at scaffold; enable later via `/pm-workflow:upgrade`; workflow runs Claude-only |
+| `impeccable` (frontend projects)             | programmer (live hook) · qa (`detect` audit) · planner (`DESIGN.md`) | `npx impeccable install --providers=claude --scope=project` (Node ≥ 22.12 to install; scaffold runs it for you) | design checks skipped; workflow runs as before. Native-Windows note: the live hook is broken upstream there, and the Codex-provider hook doesn't fire in the Windows Codex app — QA's `detect` audit covers both cases |
+| `claude-mem`                                 | PM + all roles (cross-session memory; subagent work is captured too) | `npx claude-mem install` (**user-global** — all projects on the machine; memory stays local in `~/.claude-mem`) | sessions start fresh; the `docs/` files carry all state, as they always did. Claude Code only — no turnkey Codex adapter |
 
 The scaffold can install `rtk` and `graphify` for you with your ok (they're ordinary CLI installs); the `superpowers` plugin is a human action (`/plugin` → `claude-plugins-official` marketplace). Install commands are in [Environment setup](#environment-setup-ubuntu--debian). The installer prints a status report of these assists after every install, so you can set them up before your first scaffold.
 
